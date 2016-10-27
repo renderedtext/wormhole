@@ -1,9 +1,9 @@
-defmodule ReliableErrorHandler.Mixfile do
+defmodule Wormhole.Mixfile do
   use Mix.Project
 
   def project do
-    [app: :reliable_error_handler,
-     version: "0.0.1",
+    [app: :wormhole,
+     version: "0.1.1",
      elixir: "~> 1.2",
      build_embedded: Mix.env == :prod,
      start_permanent: Mix.env == :prod,
@@ -28,7 +28,7 @@ defmodule ReliableErrorHandler.Mixfile do
   # Type "mix help deps" for more examples and options
   defp deps do
     [
-      {:logger_file_backend, "~> 0.0.6"},
+      {:logger_file_backend, "~> 0.0.6", only: :test},
     ]
   end
 end
