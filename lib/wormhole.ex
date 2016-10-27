@@ -79,6 +79,7 @@ defmodule Wormhole do
         Logger.error "Error in handeled function: #{inspect reason}";
         {:error, reason}
     after timeout_ms ->
+      pid |> Process.exit(:kill)
       Logger.error "Timeout..."
       {:error, {:timeout, timeout_ms}}
     end
