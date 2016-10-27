@@ -75,3 +75,19 @@ iex> handle(fn-> exit :foo end)
 {:error, :foo}
 
 ```
+
+### Usage pattern
+```elixir
+def ... do
+  ...
+  (&some_function/0) |> handle |> some_function_response_handler
+  ...
+end
+
+def some_function_response_handler({:ok, response}) do
+ ...
+end
+def some_function_response_handler({:error, error}) do
+ ...
+end
+```
