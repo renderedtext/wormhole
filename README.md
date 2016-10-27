@@ -1,7 +1,11 @@
-# Reliable Error Handler
+# Wormhole
 
-Invoke any function in such way that all errors are captured.
-If there are no errors return function-return-value.
+![wormhole](wormhole.jpg)
+
+## Description
+Invokes `callback` and returns `calback` return value
+if finished successfully.
+Otherwise, reliably captures error reason of all possible error types.
 
 By default, timeout is set to 3 seconds.
 
@@ -10,20 +14,20 @@ Add to the list of dependencies:
 ```elixir
 def deps do
   [
-    {:reliable_error_handler, github: "renderedtext/reliable-error-handler"}
+    {:wormhole, github: "renderedtext/wormhole"}
   ]
 end
 ```
 Add to the list of applications (only for Exrm):
 ```elixir
 def application do
-  [applications: [:reliable_error_handler]]
+  [applications: [:wormhole]]
 end
 ```
 
 ## Examples
 
-### Successful execution - returning function return value
+### Successful execution - returning callback return value
 Unnamed function:
 ```elixir
 iex> handle(fn-> :a end)
@@ -62,14 +66,14 @@ iex> handle(&Test.f/0)
 {:error,
  {%RuntimeError{message: "Hello"},
   [{Test, :f, 0, [file: 'iex', line: 23]},
-   {ReliableErrorHandler, :"-send_return_value/1-fun-0-", 2,
-    [file: 'lib/reliable_error_handler.ex', line: 75]}]}}
+   {Wormhole, :"-send_return_value/1-fun-0-", 2,
+    [file: 'lib/wormhole.ex', line: 75]}]}}
 
 iex> handle(fn-> throw :foo end)
 {:error,
  {{:nocatch, :foo},
-  [{ReliableErrorHandler, :"-send_return_value/1-fun-0-", 2,
-    [file: 'lib/reliable_error_handler.ex', line: 75]}]}}
+  [{Wormhole, :"-send_return_value/1-fun-0-", 2,
+    [file: 'lib/wormhole.ex', line: 75]}]}}
 
 iex> handle(fn-> exit :foo end)
 {:error, :foo}

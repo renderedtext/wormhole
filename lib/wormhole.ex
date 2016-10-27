@@ -1,4 +1,4 @@
-defmodule ReliableErrorHandler do
+defmodule Wormhole do
   require Logger
 
   @timeout_ms 3_000
