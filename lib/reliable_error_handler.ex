@@ -3,7 +3,15 @@ defmodule ReliableErrorHandler do
 
   @timeout_ms 3_000
 
+  @description """
+  Invokes `callback` and returns `calback` return value
+  if finished successfully.
+  Othervise, reliabley captures error reason of all possible error types.
+  """
+
   @doc """
+  #{@description}
+
   Examples:
       iex> handle(fn-> :a end)
       {:ok, :a}
@@ -24,6 +32,8 @@ defmodule ReliableErrorHandler do
     handle(callback, @timeout_ms)
 
   @doc """
+  #{@description}
+
   Examples:
       iex> handle(Enum, :count, [[]])
       {:ok, 0}
@@ -35,6 +45,8 @@ defmodule ReliableErrorHandler do
     handle(module, function, args, @timeout_ms)
 
     @doc """
+    #{@description}
+
     Examples:
         iex> handle(:timer, :sleep, [20], 50)
         {:ok, :ok}
@@ -46,6 +58,8 @@ defmodule ReliableErrorHandler do
     handle(fn-> apply(module, function, args) end, timeout)
 
     @doc """
+    #{@description}
+
     Examples:
         iex> handle(fn-> :timer.sleep 20 end, 50)
         {:ok, :ok}
