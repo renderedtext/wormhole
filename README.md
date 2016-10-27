@@ -3,7 +3,7 @@
 ![wormhole](wormhole.jpg)
 
 ## Description
-Invokes `callback` and returns `calback` return value
+Invokes `callback` and returns `callback` return value
 if finished successfully.
 Otherwise, reliably captures error reason of all possible error types.
 

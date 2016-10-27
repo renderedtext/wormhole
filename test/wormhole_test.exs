@@ -28,8 +28,21 @@ defmodule WormholeTest do
     assert r |> elem(1) |> elem(0) ==  {:nocatch, "Something happened"}
   end
 
+  test "timeout - callback process killed?" do
+    assert Wormhole.handle(__MODULE__, :send_pid, [self], 100) == {:error, {:timeout, 100}}
+    receive do
+      {:worker_pid, pid} ->
+        refute Process.alive?(pid)
+    end
+  end
+
 
   def foo_function do :foo end
 
   def bar_function(arg) do {:bar, arg} end
+
+  def send_pid(destination) do
+    send destination, {:worker_pid, self}
+    :timer.sleep :infinity
+  end
 end

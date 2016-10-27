@@ -4,13 +4,16 @@ defmodule Wormhole do
   @timeout_ms 3_000
 
   @description """
-  Invokes `callback` and returns `calback` return value
+  Invokes `callback` and returns `callback` return value
   if finished successfully.
-  Othervise, reliabley captures error reason of all possible error types.
+  Otherwise, reliably captures error reason of all possible error types.
+
+  If `callback` execution is not finished within specified timeout,
+  kills `callback` process and returns error.
   """
 
   @doc """
-  #{@description}
+  #{@description}  Default timeout is #{@timeout_ms} milliseconds.
 
   Examples:
       iex> handle(fn-> :a end)
@@ -32,7 +35,7 @@ defmodule Wormhole do
     handle(callback, @timeout_ms)
 
   @doc """
-  #{@description}
+  #{@description}  Default timeout is #{@timeout_ms} milliseconds.
 
   Examples:
       iex> handle(Enum, :count, [[]])
@@ -54,8 +57,8 @@ defmodule Wormhole do
         iex> handle(:timer, :sleep, [:infinity], 50)
         {:error, {:timeout, 50}}
     """
-  def handle(module, function, args, timeout), do:
-    handle(fn-> apply(module, function, args) end, timeout)
+  def handle(module, function, args, timeout_ms), do:
+    handle(fn-> apply(module, function, args) end, timeout_ms)
 
     @doc """
     #{@description}
@@ -67,17 +70,18 @@ defmodule Wormhole do
         iex> handle(fn-> :timer.sleep :infinity end, 50)
         {:error, {:timeout, 50}}
     """
-  def handle(callback, timeout) do
+  def handle(callback, timeout_ms) do
     {pid, monitor} = spawn_monitor(send_return_value(callback))
     receive do
       {:DOWN, ^monitor, :process, ^pid, :normal} ->
-        response_receive(timeout)
+        response_receive(timeout_ms)
       {:DOWN, ^monitor, :process, ^pid, reason}  ->
         Logger.error "Error in handeled function: #{inspect reason}";
         {:error, reason}
-    after timeout ->
+    after timeout_ms ->
+      pid |> Process.exit(:kill)
       Logger.error "Timeout..."
-      {:error, {:timeout, timeout}}
+      {:error, {:timeout, timeout_ms}}
     end
   end
 
@@ -86,13 +90,13 @@ defmodule Wormhole do
     fn-> send(caller_pid, {__MODULE__, :response, callback.()}) end
   end
 
-  defp response_receive(timeout) do
+  defp response_receive(timeout_ms) do
     receive do
       {__MODULE__, :response, response} ->
         {:ok, response}
-    after timeout ->
+    after timeout_ms ->
       Logger.error "#{__MODULE__}: Unexpected! Should never get here..."
-      {:error, {:timeout, timeout}}
+      {:error, {:timeout, timeout_ms}}
     end
   end
 end
