@@ -8,17 +8,11 @@ defmodule ReliableErrorHandler do
       iex> handle(fn-> :a end)
       {:ok, :a}
 
-      iex> r = handle(fn-> raise "Something happened" end)
-      iex> r |> elem(0)
+      iex> handle(fn-> raise "Something happened" end) |> elem(0)
       :error
-      iex> r |> elem(1) |> elem(0)
-      %RuntimeError{message: "Something happened"}
 
-      iex> r = handle(fn-> throw "Something happened" end)
-      iex> r |> elem(0)
+      iex> r = handle(fn-> throw "Something happened" end) |> elem(0)
       :error
-      iex> r |> elem(1) |> elem(0)
-      {:nocatch, "Something happened"}
 
       iex> handle(fn-> exit :foo end)
       {:error, :foo}
@@ -33,6 +27,9 @@ defmodule ReliableErrorHandler do
   Examples:
       iex> handle(Enum, :count, [[]])
       {:ok, 0}
+
+      iex> handle(Enum, :count, [:foo]) |> elem(0)
+      :error
   """
   def handle(module, function, args), do:
     handle(module, function, args, @timeout_ms)
