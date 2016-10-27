@@ -71,10 +71,10 @@ defmodule Wormhole do
         {:error, {:timeout, 50}}
     """
   def handle(callback, timeout_ms) do
-    {pid, monitor} = spawn_monitor(send_return_value(callback))
+    {pid, monitor} = callback |> propagate_return_value_wrapper |> spawn_monitor
     receive do
       {:DOWN, ^monitor, :process, ^pid, :normal} ->
-        response_receive(timeout_ms)
+        timeout_ms |> response_receive
       {:DOWN, ^monitor, :process, ^pid, reason}  ->
         Logger.error "Error in handeled function: #{inspect reason}";
         {:error, reason}
@@ -85,9 +85,9 @@ defmodule Wormhole do
     end
   end
 
-  defp send_return_value(callback) do
+  defp propagate_return_value_wrapper(callback) do
     caller_pid = self
-    fn-> send(caller_pid, {__MODULE__, :response, callback.()}) end
+    fn-> caller_pid |> send( {__MODULE__, :response, callback.()}) end
   end
 
   defp response_receive(timeout_ms) do
