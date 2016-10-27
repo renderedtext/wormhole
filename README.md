@@ -7,6 +7,9 @@ Invokes `callback` and returns `callback` return value
 if finished successfully.
 Otherwise, reliably captures error reason of all possible error types.
 
+If `callback` execution is not finished within specified timeout,
+kills `callback` process and returns error.
+
 By default, timeout is set to 3 seconds.
 
 ## Installation
