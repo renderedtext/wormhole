@@ -71,7 +71,7 @@ defmodule Wormhole do
         iex> capture(fn-> :timer.sleep :infinity end, 50)
         {:error, {:timeout, 50}}
     """
-  def capture(callback, timeout_ms) do
+  def capture(callback, timeout_ms) when is_function(callback) do
     {pid, monitor} = callback |> propagate_return_value_wrapper |> spawn_monitor
     receive do
       {:DOWN, ^monitor, :process, ^pid, :normal} ->
@@ -84,6 +84,9 @@ defmodule Wormhole do
       Logger.error "Timeout..."
       {:error, {:timeout, timeout_ms}}
     end
+  end
+  def capture(callback, timeout_ms) do
+    {:error, {:not_function, callback}}
   end
 
   defp propagate_return_value_wrapper(callback) do
