@@ -4,9 +4,10 @@ defmodule Wormhole do
   @timeout_ms 3_000
 
   @description """
-  Invokes `callback` and returns `callback` return value
-  if finished successfully.
-  Otherwise, reliably captures error reason of all possible error types.
+  Invokes `callback` in separate process and
+  waits for message from callback process containing callback return value
+  if finished successfully or
+  error reason if callback process failed for any reason.
 
   If `callback` execution is not finished within specified timeout,
   kills `callback` process and returns error.
@@ -16,61 +17,61 @@ defmodule Wormhole do
   #{@description}  Default timeout is #{@timeout_ms} milliseconds.
 
   Examples:
-      iex> handle(fn-> :a end)
+      iex> capture(fn-> :a end)
       {:ok, :a}
 
-      iex> handle(fn-> raise "Something happened" end) |> elem(0)
+      iex> capture(fn-> raise "Something happened" end) |> elem(0)
       :error
 
-      iex> r = handle(fn-> throw "Something happened" end) |> elem(0)
+      iex> r = capture(fn-> throw "Something happened" end) |> elem(0)
       :error
 
-      iex> handle(fn-> exit :foo end)
+      iex> capture(fn-> exit :foo end)
       {:error, :foo}
 
-      iex> handle(fn-> Process.exit(self, :foo) end)
+      iex> capture(fn-> Process.exit(self, :foo) end)
       {:error, :foo}
   """
-  def handle(callback), do:
-    handle(callback, @timeout_ms)
+  def capture(callback), do:
+    capture(callback, @timeout_ms)
 
   @doc """
   #{@description}  Default timeout is #{@timeout_ms} milliseconds.
 
   Examples:
-      iex> handle(Enum, :count, [[]])
+      iex> capture(Enum, :count, [[]])
       {:ok, 0}
 
-      iex> handle(Enum, :count, [:foo]) |> elem(0)
+      iex> capture(Enum, :count, [:foo]) |> elem(0)
       :error
   """
-  def handle(module, function, args), do:
-    handle(module, function, args, @timeout_ms)
+  def capture(module, function, args), do:
+    capture(module, function, args, @timeout_ms)
 
     @doc """
     #{@description}
 
     Examples:
-        iex> handle(:timer, :sleep, [20], 50)
+        iex> capture(:timer, :sleep, [20], 50)
         {:ok, :ok}
 
-        iex> handle(:timer, :sleep, [:infinity], 50)
+        iex> capture(:timer, :sleep, [:infinity], 50)
         {:error, {:timeout, 50}}
     """
-  def handle(module, function, args, timeout_ms), do:
-    handle(fn-> apply(module, function, args) end, timeout_ms)
+  def capture(module, function, args, timeout_ms), do:
+    capture(fn-> apply(module, function, args) end, timeout_ms)
 
     @doc """
     #{@description}
 
     Examples:
-        iex> handle(fn-> :timer.sleep 20 end, 50)
+        iex> capture(fn-> :timer.sleep 20 end, 50)
         {:ok, :ok}
 
-        iex> handle(fn-> :timer.sleep :infinity end, 50)
+        iex> capture(fn-> :timer.sleep :infinity end, 50)
         {:error, {:timeout, 50}}
     """
-  def handle(callback, timeout_ms) do
+  def capture(callback, timeout_ms) do
     {pid, monitor} = callback |> propagate_return_value_wrapper |> spawn_monitor
     receive do
       {:DOWN, ^monitor, :process, ^pid, :normal} ->
