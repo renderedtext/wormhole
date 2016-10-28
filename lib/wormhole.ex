@@ -77,11 +77,11 @@ defmodule Wormhole do
       {:DOWN, ^monitor, :process, ^pid, :normal} ->
         timeout_ms |> response_receive
       {:DOWN, ^monitor, :process, ^pid, reason}  ->
-        Logger.error "Error in handeled function: #{inspect reason}";
+        Logger.error "#{__MODULE__}: Error in handled function: #{inspect reason}";
         {:error, reason}
     after timeout_ms ->
       pid |> Process.exit(:kill)
-      Logger.error "Timeout..."
+      Logger.error "#{__MODULE__}: Timeout..."
       {:error, {:timeout, timeout_ms}}
     end
   end
