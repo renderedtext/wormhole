@@ -3,9 +3,14 @@
 ![wormhole](wormhole.jpg)
 
 ## Description
-Invokes `callback` and returns `callback` return value
-if finished successfully.
-Otherwise, reliably captures error reason of all possible error types.
+Wormhole captures anything that is emitted out of the callback
+(return value or error reason) and transfers it to the calling process
+in the form `{:ok, state}` or `{:error, reason}`.
+
+Wormhole invokes `callback` in separate process and
+waits for message from callback process containing callback return value
+if finished successfully or
+error reason if callback process failed for any reason.
 
 If `callback` execution is not finished within specified timeout,
 kills `callback` process and returns error.
@@ -33,27 +38,27 @@ end
 ### Successful execution - returning callback return value
 Unnamed function:
 ```elixir
-iex> handle(fn-> :a end)
+iex> Wormhole.capture(fn-> :a end)
 {:ok, :a}
 
 ```
 Named function without arguments:
 ```elixir
-handle(&Process.list/0)
+iex> Wormhole.capture(&Process.list/0)
 {:ok, [#PID<0.0.0>, #PID<0.3.0>, #PID<0.6.0>, #PID<0.7.0>, ...]}
 ```
 Named function with arguments:
 ```elixir
-handle(Enum, :count, [[1,2,3]])
+iex> Wormhole.capture(Enum, :count, [[1,2,3]])
 {:ok, 3}
 ```
 
 Both versions with timeout explicitly set to 2 seconds:
 ```elixir
-handle(&Process.list/0, 2_000)
+iex> Wormhole.capture(&Process.list/0, 2_000)
 {:ok, [#PID<0.0.0>, #PID<0.3.0>, #PID<0.6.0>, #PID<0.7.0>, ...]}
 
-handle(Enum, :count, [[1,2,3]], 2_000)
+iex> Wormhole.capture(Enum, :count, [[1,2,3]], 2_000)
 {:ok, 3}
 ```
 
@@ -65,20 +70,20 @@ defmodule Test do
   end
 end
 
-iex> handle(&Test.f/0)
+iex> Wormhole.capture(&Test.f/0)
 {:error,
  {%RuntimeError{message: "Hello"},
   [{Test, :f, 0, [file: 'iex', line: 23]},
    {Wormhole, :"-send_return_value/1-fun-0-", 2,
     [file: 'lib/wormhole.ex', line: 75]}]}}
 
-iex> handle(fn-> throw :foo end)
+iex> Wormhole.capture(fn-> throw :foo end)
 {:error,
  {{:nocatch, :foo},
   [{Wormhole, :"-send_return_value/1-fun-0-", 2,
     [file: 'lib/wormhole.ex', line: 75]}]}}
 
-iex> handle(fn-> exit :foo end)
+iex> Wormhole.capture(fn-> exit :foo end)
 {:error, :foo}
 
 ```
@@ -87,7 +92,7 @@ iex> handle(fn-> exit :foo end)
 ```elixir
 def ... do
   ...
-  (&some_function/0) |> handle |> some_function_response_handler
+  (&some_function/0) |> Wormhole.capture |> some_function_response_handler
   ...
 end
 

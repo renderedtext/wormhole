@@ -5,31 +5,31 @@ defmodule WormholeTest do
   alias Wormhole
 
   test "successful execution - named function - foo, 1 arg" do
-    assert Wormhole.handle(&foo_function/0) == {:ok, :foo}
+    assert Wormhole.capture(&foo_function/0) == {:ok, :foo}
   end
 
   test "successful execution - named function - foo, 3 arg" do
-    assert Wormhole.handle(__MODULE__, :foo_function, []) == {:ok, :foo}
+    assert Wormhole.capture(__MODULE__, :foo_function, []) == {:ok, :foo}
   end
 
   test "successful execution - named function - bar, 3 arg" do
-    assert Wormhole.handle(__MODULE__, :bar_function, [4]) == {:ok, {:bar, 4}}
+    assert Wormhole.capture(__MODULE__, :bar_function, [4]) == {:ok, {:bar, 4}}
   end
 
   test "raised exception - unnamed function, 1 arg" do
-    r = Wormhole.handle(fn-> raise "Something happened" end)
+    r = Wormhole.capture(fn-> raise "Something happened" end)
     assert r |> elem(0) == :error
     assert r |> elem(1) |> elem(0) == %RuntimeError{message: "Something happened"}
   end
 
   test "thrown exception - unnamed function, 1 arg" do
-    r = Wormhole.handle(fn-> throw "Something happened" end)
+    r = Wormhole.capture(fn-> throw "Something happened" end)
     assert r |> elem(0) == :error
     assert r |> elem(1) |> elem(0) ==  {:nocatch, "Something happened"}
   end
 
   test "timeout - callback process killed?" do
-    assert Wormhole.handle(__MODULE__, :send_pid, [self], 100) == {:error, {:timeout, 100}}
+    assert Wormhole.capture(__MODULE__, :send_pid, [self], 100) == {:error, {:timeout, 100}}
     receive do
       {:worker_pid, pid} ->
         refute Process.alive?(pid)
