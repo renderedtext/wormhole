@@ -47,6 +47,14 @@ defmodule WormholeTest do
     assert r |> elem(1) |> elem(0) == :undef
   end
 
+
+  test "devision by zero" do
+    r = Wormhole.capture(fn-> 1/0 end)
+    assert r |> elem(0) == :error
+    assert r |> elem(1) |> elem(0) == :badarith
+  end
+
+
   def foo_function do :foo end
 
   def bar_function(arg) do {:bar, arg} end
