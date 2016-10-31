@@ -30,6 +30,7 @@ defmodule WormholeTest do
 
   test "timeout - callback process killed?" do
     assert Wormhole.capture(__MODULE__, :send_pid, [self], 100) == {:error, {:timeout, 100}}
+    :timer.sleep(100)
     receive do
       {:worker_pid, pid} ->
         refute Process.alive?(pid)
@@ -46,14 +47,6 @@ defmodule WormholeTest do
     assert r |> elem(0) == :error
     assert r |> elem(1) |> elem(0) == :undef
   end
-
-
-  test "devision by zero" do
-    r = Wormhole.capture(fn-> 1/0 end)
-    assert r |> elem(0) == :error
-    assert r |> elem(1) |> elem(0) == :badarith
-  end
-
 
   def foo_function do :foo end
 
