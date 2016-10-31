@@ -36,9 +36,15 @@ defmodule WormholeTest do
     end
   end
 
-  test "callback not function" do
+  test "callback not function - unnamed" do
     assert Wormhole.capture(:a)   == {:error, {:not_function, :a}}
     assert Wormhole.capture(self) == {:error, {:not_function, self}}
+  end
+
+  test "callback not function - named" do
+    r = Wormhole.capture(List, :foo, [])
+    assert r |> elem(0) == :error
+    assert r |> elem(1) |> elem(0) == :undef
   end
 
   def foo_function do :foo end
