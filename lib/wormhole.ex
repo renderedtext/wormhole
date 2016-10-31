@@ -36,6 +36,22 @@ defmodule Wormhole do
     capture(callback, @timeout_ms)
 
   @doc """
+  #{@description}
+
+  Examples:
+      iex> capture(fn-> :timer.sleep 20 end, 50)
+      {:ok, :ok}
+
+      iex> capture(fn-> :timer.sleep :infinity end, 50)
+      {:error, {:timeout, 50}}
+  """
+  def capture(callback, timeout_ms) do
+    capture_(callback, timeout_ms)
+    |> log_error(callback)
+  end
+
+
+  @doc """
   #{@description}  Default timeout is #{@timeout_ms} milliseconds.
 
   Examples:
@@ -59,33 +75,26 @@ defmodule Wormhole do
       {:error, {:timeout, 50}}
   """
   def capture(module, function, args, timeout_ms), do:
-    capture(fn-> apply(module, function, args) end, timeout_ms)
+    capture_(fn-> apply(module, function, args) end, timeout_ms)
+    |> log_error({module, function, args})
+
 
   @doc """
-  #{@description}
-
-  Examples:
-      iex> capture(fn-> :timer.sleep 20 end, 50)
-      {:ok, :ok}
-
-      iex> capture(fn-> :timer.sleep :infinity end, 50)
-      {:error, {:timeout, 50}}
+  capture implementation
   """
-  def capture(callback, timeout_ms) when is_function(callback) do
+  defp capture_(callback, timeout_ms) when is_function(callback) do
     {pid, monitor} = callback |> propagate_return_value_wrapper |> spawn_monitor
     receive do
       {:DOWN, ^monitor, :process, ^pid, :normal} ->
         timeout_ms |> response_receive
       {:DOWN, ^monitor, :process, ^pid, reason}  ->
-        Logger.error "#{__MODULE__}: Error in handled function: #{inspect reason}";
         {:error, reason}
     after timeout_ms ->
       pid |> Process.exit(:kill)
-      Logger.error "#{__MODULE__}: Timeout..."
       {:error, {:timeout, timeout_ms}}
     end
   end
-  def capture(callback, _timeout_ms) do
+  defp capture_(callback, _timeout_ms) do
     {:error, {:not_function, callback}}
   end
 
@@ -98,9 +107,18 @@ defmodule Wormhole do
     receive do
       {__MODULE__, :response, response} ->
         {:ok, response}
-    after timeout_ms ->
-      Logger.error "#{__MODULE__}: Unexpected! Should never get here..."
-      {:error, {:timeout, timeout_ms}}
+    # response should be here before process terminates and
+    # should not be awaited for at all
+    after 50 ->
+      {:error, {:unexpected, :no_response}}
     end
+  end
+
+
+  defp log_error(response = {:ok, _},    _callback), do: response
+  defp log_error(response = {:error, reason}, callback)   do
+    Logger.error "#{__MODULE__}:: callback: #{inspect callback}; reason: #{inspect reason}";
+
+    response
   end
 end
