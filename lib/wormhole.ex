@@ -23,7 +23,7 @@ defmodule Wormhole do
       iex> capture(fn-> raise "Something happened" end) |> elem(0)
       :error
 
-      iex> r = capture(fn-> throw "Something happened" end) |> elem(0)
+      iex> capture(fn-> throw "Something happened" end) |> elem(0)
       :error
 
       iex> capture(fn-> exit :foo end)
@@ -48,29 +48,29 @@ defmodule Wormhole do
   def capture(module, function, args), do:
     capture(module, function, args, @timeout_ms)
 
-    @doc """
-    #{@description}
+  @doc """
+  #{@description}
 
-    Examples:
-        iex> capture(:timer, :sleep, [20], 50)
-        {:ok, :ok}
+  Examples:
+      iex> capture(:timer, :sleep, [20], 50)
+      {:ok, :ok}
 
-        iex> capture(:timer, :sleep, [:infinity], 50)
-        {:error, {:timeout, 50}}
-    """
+      iex> capture(:timer, :sleep, [:infinity], 50)
+      {:error, {:timeout, 50}}
+  """
   def capture(module, function, args, timeout_ms), do:
     capture(fn-> apply(module, function, args) end, timeout_ms)
 
-    @doc """
-    #{@description}
+  @doc """
+  #{@description}
 
-    Examples:
-        iex> capture(fn-> :timer.sleep 20 end, 50)
-        {:ok, :ok}
+  Examples:
+      iex> capture(fn-> :timer.sleep 20 end, 50)
+      {:ok, :ok}
 
-        iex> capture(fn-> :timer.sleep :infinity end, 50)
-        {:error, {:timeout, 50}}
-    """
+      iex> capture(fn-> :timer.sleep :infinity end, 50)
+      {:error, {:timeout, 50}}
+  """
   def capture(callback, timeout_ms) when is_function(callback) do
     {pid, monitor} = callback |> propagate_return_value_wrapper |> spawn_monitor
     receive do
@@ -85,7 +85,7 @@ defmodule Wormhole do
       {:error, {:timeout, timeout_ms}}
     end
   end
-  def capture(callback, timeout_ms) do
+  def capture(callback, _timeout_ms) do
     {:error, {:not_function, callback}}
   end
 
