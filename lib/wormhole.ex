@@ -107,9 +107,10 @@ defmodule Wormhole do
     receive do
       {__MODULE__, :response, response} ->
         {:ok, response}
-    after timeout_ms ->
-      Logger.error "#{__MODULE__}: Unexpected! Should never get here..."
-      {:error, {:timeout, timeout_ms}}
+    # response should be here before process terminates and
+    # should not be awaited for at all
+    after 50 ->
+      {:error, {:unexpected, :no_response}}
     end
   end
 
