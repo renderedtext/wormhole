@@ -79,40 +79,36 @@ defmodule Wormhole do
     |> log_error({module, function, args})
 
 
-  @doc """
-  capture implementation
-  """
+  #################  implementation  #################
+
   defp capture_(callback, timeout_ms) when is_function(callback) do
-    {pid, monitor} = callback |> propagate_return_value_wrapper |> spawn_monitor
-    receive do
-      {:DOWN, ^monitor, :process, ^pid, :normal} ->
-        timeout_ms |> response_receive
-      {:DOWN, ^monitor, :process, ^pid, reason}  ->
-        {:error, reason}
-    after timeout_ms ->
-      pid |> Process.exit(:kill)
-      {:error, {:timeout, timeout_ms}}
-    end
+    Task.Supervisor.start_link
+    |> callback_exec_and_response(callback, timeout_ms)
   end
   defp capture_(callback, _timeout_ms) do
     {:error, {:not_function, callback}}
   end
 
-  defp propagate_return_value_wrapper(callback) do
-    caller_pid = self
-    fn-> caller_pid |> send( {__MODULE__, :response, callback.()}) end
+  defp callback_exec_and_response({:ok, sup}, callback, timeout_ms) do
+    Task.Supervisor.async_nolink(sup, callback)
+    |> Task.yield(timeout_ms)
+    |> supervisor_stop(sup)
+    |> response_format(timeout_ms)
+  end
+  defp callback_exec_and_response(start_link_response, _callback, _timeout_ms) do
+    {:error, {:failed_to_start_supervisor, start_link_response}}
   end
 
-  defp response_receive(timeout_ms) do
-    receive do
-      {__MODULE__, :response, response} ->
-        {:ok, response}
-    # response should be here before process terminates and
-    # should not be awaited for at all
-    after 50 ->
-      {:error, {:unexpected, :no_response}}
-    end
+  defp supervisor_stop(response, sup) do
+    Process.unlink(sup)
+    Process.exit(sup, :kill)
+
+    response
   end
+
+  defp response_format({:ok,   state},  _)          do {:ok,    state} end
+  defp response_format({:exit, reason}, _)          do {:error, reason} end
+  defp response_format(nil,             timeout_ms) do {:error, {:timeout, timeout_ms}} end
 
 
   defp log_error(response = {:ok, _},    _callback), do: response
