@@ -37,9 +37,6 @@ defmodule Wormhole do
       iex> capture(fn-> exit :foo end)
       {:error, :foo}
 
-      iex> capture(fn-> exit :foo end, [retry_count: 3, backoff_ms: 100])
-      {:error, :foo}
-
       iex> capture(fn-> Process.exit(self, :foo) end)
       {:error, :foo}
 
@@ -48,11 +45,14 @@ defmodule Wormhole do
 
       iex> capture(fn-> :timer.sleep :infinity end, timeout_ms: 50)
       {:error, {:timeout, 50}}
+
+      iex> capture(fn-> exit :foo end, [retry_count: 3, backoff_ms: 100])
+      {:error, :foo}
   """
   def capture(callback, options \\ [])
   def capture(callback, options) do
     capture_(callback, options)
-    |> log_error(callback)
+    |> logger(callback)
   end
 
 
@@ -75,7 +75,7 @@ defmodule Wormhole do
   def capture(module, function, args, options \\ [])
   def capture(module, function, args, options), do:
     capture_(fn-> apply(module, function, args) end, options)
-    |> log_error({module, function, args})
+    |> logger({module, function, args})
 
 
   #################  implementation  #################
@@ -129,7 +129,7 @@ defmodule Wormhole do
   defp retry(response, {supervisor, callback, timeout_ms, retry_count, backoff_ms}) do
     retry_count = retry_count - 1
     if(retry_count > 0) do
-      Logger.error "#{__MODULE__}:: Retrying #{retry_count}, callback: #{inspect callback}; reason: #{inspect response}"
+      Logger.warn "#{__MODULE__}:: Retrying #{retry_count}, callback: #{inspect callback}; reason: #{inspect response}"
       :timer.sleep(backoff_ms)
     end
 
@@ -137,9 +137,9 @@ defmodule Wormhole do
           supervisor, callback, timeout_ms, retry_count, backoff_ms)
   end
 
-  defp log_error(response = {:ok, _},    _callback), do: response
-  defp log_error(response = {:error, reason}, callback)   do
-    Logger.error "#{__MODULE__}:: callback: #{inspect callback}; reason: #{inspect reason}";
+  defp logger(response = {:ok, _},    _callback), do: response
+  defp logger(response = {:error, reason}, callback)   do
+    Logger.warn "#{__MODULE__}:: callback: #{inspect callback}; reason: #{inspect reason}";
 
     response
   end
