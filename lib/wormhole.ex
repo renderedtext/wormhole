@@ -31,20 +31,14 @@ defmodule Wormhole do
 
       iex> capture(fn-> Process.exit(self, :foo) end)
       {:error, :foo}
-  """
-  def capture(callback), do:
-    capture(callback, @timeout_ms)
 
-  @doc """
-  #{@description}
-
-  Examples:
       iex> capture(fn-> :timer.sleep 20 end, 50)
       {:ok, :ok}
 
       iex> capture(fn-> :timer.sleep :infinity end, 50)
       {:error, {:timeout, 50}}
   """
+  def capture(callback, timeout_ms \\ @timeout_ms)
   def capture(callback, timeout_ms) do
     capture_(callback, timeout_ms)
     |> log_error(callback)
@@ -60,20 +54,14 @@ defmodule Wormhole do
 
       iex> capture(Enum, :count, [:foo]) |> elem(0)
       :error
-  """
-  def capture(module, function, args), do:
-    capture(module, function, args, @timeout_ms)
 
-  @doc """
-  #{@description}
-
-  Examples:
       iex> capture(:timer, :sleep, [20], 50)
       {:ok, :ok}
 
       iex> capture(:timer, :sleep, [:infinity], 50)
       {:error, {:timeout, 50}}
   """
+  def capture(module, function, args, timeout_ms \\ @timeout_ms)
   def capture(module, function, args, timeout_ms), do:
     capture_(fn-> apply(module, function, args) end, timeout_ms)
     |> log_error({module, function, args})
