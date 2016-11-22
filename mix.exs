@@ -3,7 +3,7 @@ defmodule Wormhole.Mixfile do
 
   def project do
     [app: :wormhole,
-     version: "0.1.1",
+     version: "1.0.1",
      elixir: "~> 1.2",
      build_embedded: Mix.env == :prod,
      start_permanent: Mix.env == :prod,

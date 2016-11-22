@@ -32,15 +32,15 @@ defmodule Wormhole do
       iex> capture(fn-> Process.exit(self, :foo) end)
       {:error, :foo}
 
-      iex> capture(fn-> :timer.sleep 20 end, 50)
+      iex> capture(fn-> :timer.sleep 20 end, timeout_ms: 50)
       {:ok, :ok}
 
-      iex> capture(fn-> :timer.sleep :infinity end, 50)
+      iex> capture(fn-> :timer.sleep :infinity end, timeout_ms: 50)
       {:error, {:timeout, 50}}
   """
-  def capture(callback, timeout_ms \\ @timeout_ms)
-  def capture(callback, timeout_ms) do
-    capture_(callback, timeout_ms)
+  def capture(callback, options \\ [])
+  def capture(callback, options) do
+    capture_(callback, options)
     |> log_error(callback)
   end
 
@@ -55,21 +55,23 @@ defmodule Wormhole do
       iex> capture(Enum, :count, [:foo]) |> elem(0)
       :error
 
-      iex> capture(:timer, :sleep, [20], 50)
+      iex> capture(:timer, :sleep, [20], timeout_ms: 50)
       {:ok, :ok}
 
-      iex> capture(:timer, :sleep, [:infinity], 50)
+      iex> capture(:timer, :sleep, [:infinity], timeout_ms: 50)
       {:error, {:timeout, 50}}
   """
-  def capture(module, function, args, timeout_ms \\ @timeout_ms)
-  def capture(module, function, args, timeout_ms), do:
-    capture_(fn-> apply(module, function, args) end, timeout_ms)
+  def capture(module, function, args, options \\ [])
+  def capture(module, function, args, options), do:
+    capture_(fn-> apply(module, function, args) end, options)
     |> log_error({module, function, args})
 
 
   #################  implementation  #################
 
-  defp capture_(callback, timeout_ms) when is_function(callback) do
+  defp capture_(callback, options) when is_function(callback) do
+    timeout_ms = Keyword.get(options, :timeout_ms) || @timeout_ms
+
     Task.Supervisor.start_link
     |> callback_exec_and_response(callback, timeout_ms)
   end

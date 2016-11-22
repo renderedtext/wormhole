@@ -29,7 +29,8 @@ defmodule WormholeTest do
   end
 
   test "timeout - callback process killed?" do
-    assert Wormhole.capture(__MODULE__, :send_pid, [self], 100) == {:error, {:timeout, 100}}
+    assert Wormhole.capture(__MODULE__, :send_pid, [self], timeout_ms: 100) ==
+            {:error, {:timeout, 100}}
     :timer.sleep(100)
     receive do
       {:worker_pid, pid} ->
