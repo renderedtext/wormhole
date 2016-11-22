@@ -55,10 +55,10 @@ iex> Wormhole.capture(Enum, :count, [[1,2,3]])
 
 Both versions with timeout explicitly set to 2 seconds:
 ```elixir
-iex> Wormhole.capture(&Process.list/0, 2_000)
+iex> Wormhole.capture(&Process.list/0, timeout_ms: 2_000)
 {:ok, [#PID<0.0.0>, #PID<0.3.0>, #PID<0.6.0>, #PID<0.7.0>, ...]}
 
-iex> Wormhole.capture(Enum, :count, [[1,2,3]], 2_000)
+iex> Wormhole.capture(Enum, :count, [[1,2,3]], timeout_ms: 2_000)
 {:ok, 3}
 ```
 
@@ -87,6 +87,12 @@ iex> Wormhole.capture(fn-> exit :foo end)
 {:error, :foo}
 
 ```
+
+### Retry
+```elixir
+iex> Wormhole.capture(&foo/0, [timeout_ms: 2_000, retry_count: 3, backoff_ms: 300])
+```
+
 
 ### Usage pattern
 ```elixir
