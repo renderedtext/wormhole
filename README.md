@@ -13,9 +13,17 @@ if finished successfully or
 error reason if callback process failed for any reason.
 
 If `callback` execution is not finished within specified timeout,
-kills `callback` process and returns error.
+`callback` process is killed and error returned.
+Default timeout value is specified in `@timeout_ms`.
+User can specify `timeout_ms` in `options` keyword list.
 
-By default, timeout is set to 3 seconds.
+By default there is no retry, but user can specify
+`retry_count` and `backoff_ms` in `options`.
+Default back-off time value is specified in `@backoff_ms`.
+
+Note: `retry_count` specifies maximum number of times `callback` can be invoked.
+More accurate name would be `try_count` but I think it would bring
+more confusion than clarity, hence the name remains.
 
 ## Installation
 Add to the list of dependencies:
