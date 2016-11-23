@@ -1,7 +1,7 @@
 defmodule Wormhole do
   require Logger
 
-  @timeout_ms  3_000
+  @timeout_ms  5_000
   @retry_count 1
   @backoff_ms  1_000
 
