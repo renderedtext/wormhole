@@ -45,10 +45,16 @@ defmodule Wormhole.Capture do
   end
   defp callback_exec_and_response_retry(_prev_response,
         {:ok, sup}, callback, timeout_ms, retry_count, backoff_ms) do
-    Task.Supervisor.async_nolink(sup, callback)
-    |> Task.yield(timeout_ms)
-    |> response_format(timeout_ms)
-    |> retry({{:ok, sup}, callback, timeout_ms, retry_count, backoff_ms})
+    task = Task.Supervisor.async_nolink(:wormhole_task_supervisor, callback)
+
+    response =
+      task
+      |> Task.yield(timeout_ms)
+      |> response_format(timeout_ms)
+      |> retry({callback, timeout_ms, retry_count, backoff_ms})
+      Task.Supervisor.terminate_child :wormhole_task_supervisor, Map.get( task, :pid)
+
+    response
   end
 
   defp supervisor_stop(response, sup) do

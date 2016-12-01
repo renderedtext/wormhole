@@ -5,7 +5,7 @@ defmodule Wormhole do
     import Supervisor.Spec, warn: false
 
     children = [
-      worker(Task.Supervisor, [[name: :wormhole_supervisor]]),
+      worker(Task.Supervisor, [[name: :wormhole_task_supervisor]]),
     ]
 
     opts = [strategy: :one_for_one, name: Wormhole.Supervisor]
