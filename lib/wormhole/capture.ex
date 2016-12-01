@@ -10,12 +10,11 @@ defmodule Wormhole.Capture do
     |> logger(callback)
   end
 
-  def capture(module, function, args, options), do:
+  def capture(module, function, args, options) do
     capture_(fn-> apply(module, function, args) end, options)
     |> logger({module, function, args})
+  end
 
-
-  #################  implementation  #################
 
   defp capture_(callback, options) when is_function(callback) do
     timeout_ms  = Keyword.get(options, :timeout_ms)  || @timeout_ms
