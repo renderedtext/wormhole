@@ -47,7 +47,7 @@ defmodule Wormhole.Capture do
 
   defp terminate_child(nil, pid) do
     Task.Supervisor.terminate_child :wormhole_task_supervisor, pid
-    receive do {:DOWN, _, :process, ^pid, _} -> nil end
+    receive do {:DOWN, _, :process, ^pid, _} -> nil after 50 -> nil end
   end
   defp terminate_child(response, pid) do response end
 
