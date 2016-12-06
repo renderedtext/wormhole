@@ -45,7 +45,7 @@ defmodule Wormhole do
       :error
 
       iex> capture(fn-> exit :foo end)
-      {:error, :foo}
+      {:error, {:shutdown, :foo}}
 
       iex> capture(fn-> Process.exit(self, :foo) end)
       {:error, :foo}
@@ -57,7 +57,7 @@ defmodule Wormhole do
       {:error, {:timeout, 50}}
 
       iex> capture(fn-> exit :foo end, [retry_count: 3, backoff_ms: 100])
-      {:error, :foo}
+      {:error, {:shutdown, :foo}}
   """
   def capture(callback, options \\ [])
   def capture(callback, options) do
@@ -86,4 +86,3 @@ defmodule Wormhole do
     Wormhole.Capture.capture(module, function, args, options)
   end
 end
-

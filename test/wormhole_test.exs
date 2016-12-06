@@ -19,13 +19,13 @@ defmodule WormholeTest do
   test "raised exception - unnamed function, 1 arg" do
     r = Wormhole.capture(fn-> raise "Something happened" end)
     assert r |> elem(0) == :error
-    assert r |> elem(1) |> elem(0) == %RuntimeError{message: "Something happened"}
+    assert r |> elem(1) == {:shutdown, %RuntimeError{message: "Something happened"}}
   end
 
   test "thrown exception - unnamed function, 1 arg" do
     r = Wormhole.capture(fn-> throw "Something happened" end)
     assert r |> elem(0) == :error
-    assert r |> elem(1) |> elem(0) ==  {:nocatch, "Something happened"}
+    assert r |> elem(1) == {:shutdown, "Something happened"}
   end
 
   test "timeout - callback process killed?" do
@@ -46,7 +46,7 @@ defmodule WormholeTest do
   test "callback not function - named" do
     r = Wormhole.capture(List, :foo, [])
     assert r |> elem(0) == :error
-    assert r |> elem(1) |> elem(0) == :undef
+    assert r |> elem(1) == {:shutdown, :undef}
   end
 
   def foo_function do :foo end
