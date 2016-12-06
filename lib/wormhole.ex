@@ -1,6 +1,8 @@
 defmodule Wormhole do
   use Application
 
+  alias Wormhole.Defaults
+
   def start(_type, _args) do
     import Supervisor.Spec, warn: false
 
@@ -23,12 +25,12 @@ defmodule Wormhole do
 
   If `callback` execution is not finished within specified timeout,
   kills `callback` process and returns error.
-  Default timeout is #{@timeout_ms} milliseconds.
+  Default timeout is #{Defaults.timeout_ms} milliseconds.
   User can specify `timeout_ms` in `options` keyword list.
 
   By default there is no retry, but user can specify
   `retry_count` and `backoff_ms` in `options`.
-  Default `backoff_ms` is #{@backoff_ms} milliseconds.
+  Default `backoff_ms` is #{Defaults.backoff_ms} milliseconds.
   """
 
   @doc """
