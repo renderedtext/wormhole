@@ -20,6 +20,7 @@ defmodule Wormhole.Capture do
     timeout_ms  = Keyword.get(options, :timeout_ms)  || @timeout_ms
     retry_count = Keyword.get(options, :retry_count) || @retry_count
     backoff_ms  = Keyword.get(options, :backoff_ms)  || @backoff_ms
+    callback = callback |> Wormhole.CallbackWrapper.wrap
 
     callback_exec_and_response_retry(
           {:error, {:invalid_value, {:retry_count, 0}}},
@@ -49,7 +50,7 @@ defmodule Wormhole.Capture do
     Task.Supervisor.terminate_child :wormhole_task_supervisor, pid
     receive do {:DOWN, _, :process, ^pid, _} -> nil after 50 -> nil end
   end
-  defp terminate_child(response, pid) do response end
+  defp terminate_child(response, _pid) do response end
 
   defp response_format({:ok,   state},  _)          do {:ok,    state} end
   defp response_format({:exit, reason}, _)          do {:error, reason} end
@@ -59,7 +60,7 @@ defmodule Wormhole.Capture do
   defp retry(response, {callback, timeout_ms, retry_count, backoff_ms}) do
     retry_count = retry_count - 1
     if(retry_count > 0) do
-      Logger.warn "#{__MODULE__}:: Retrying #{retry_count}, callback: #{inspect callback}; reason: #{inspect response}"
+      Logger.warn "#{__MODULE__}{#{inspect self}}:: Retrying #{retry_count}, callback: #{inspect callback}; reason: #{inspect response}"
       :timer.sleep(backoff_ms)
     end
 
@@ -69,7 +70,7 @@ defmodule Wormhole.Capture do
 
   defp logger(response = {:ok, _},    _callback), do: response
   defp logger(response = {:error, reason}, callback)   do
-    Logger.warn "#{__MODULE__}:: callback: #{inspect callback}; reason: #{inspect reason}";
+    Logger.warn "#{__MODULE__}{#{inspect self}}:: callback: #{inspect callback}; reason: #{inspect reason}";
 
     response
   end
