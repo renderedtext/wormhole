@@ -1,9 +1,7 @@
 defmodule Wormhole.Capture do
   require Logger
 
-  @timeout_ms  5_000
-  @retry_count 1
-  @backoff_ms  1_000
+  alias Wormhole.Defaults
 
   def capture(callback, options) do
     capture_(callback, options)
@@ -17,9 +15,9 @@ defmodule Wormhole.Capture do
 
 
   defp capture_(callback, options) when is_function(callback) do
-    timeout_ms  = Keyword.get(options, :timeout_ms)  || @timeout_ms
-    retry_count = Keyword.get(options, :retry_count) || @retry_count
-    backoff_ms  = Keyword.get(options, :backoff_ms)  || @backoff_ms
+    timeout_ms  = Keyword.get(options, :timeout_ms)  || Defaults.timeout_ms
+    retry_count = Keyword.get(options, :retry_count) || Defaults.retry_count
+    backoff_ms  = Keyword.get(options, :backoff_ms)  || Defaults.backoff_ms
     callback = callback |> Wormhole.CallbackWrapper.wrap
 
     callback_exec_and_response_retry(
