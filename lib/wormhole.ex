@@ -63,7 +63,7 @@ defmodule Wormhole do
   """
   def capture(callback, options \\ [])
   def capture(callback, options) do
-    Wormhole.Capture.exec(callback, options)
+    Wormhole.Retry.exec(callback, options)
     |> logger(callback)
   end
 
@@ -89,7 +89,7 @@ defmodule Wormhole do
   """
   def capture(module, function, args, options \\ [])
   def capture(module, function, args, options) do
-    Wormhole.Capture.exec(fn-> apply(module, function, args) end, options)
+    Wormhole.Retry.exec(fn-> apply(module, function, args) end, options)
     |> logger({module, function, args})
   end
 
