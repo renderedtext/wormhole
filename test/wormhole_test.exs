@@ -29,7 +29,7 @@ defmodule WormholeTest do
   end
 
   test "timeout - callback process killed?" do
-    assert Wormhole.capture(__MODULE__, :send_pid, [self], timeout_ms: 100) ==
+    assert Wormhole.capture(__MODULE__, :send_pid_and_freeze, [self], timeout_ms: 100) ==
             {:error, {:timeout, 100}}
     :timer.sleep(100)
     receive do
@@ -39,8 +39,8 @@ defmodule WormholeTest do
   end
 
   test "callback not function - unnamed" do
-    assert Wormhole.capture(:a)   == {:error, {:not_function, :a}}
-    assert Wormhole.capture(self) == {:error, {:not_function, self}}
+    assert Wormhole.capture(:a)   == {:error, {:shutdown, {:badfun, :a}}}
+    assert Wormhole.capture(self) == {:error, {:shutdown, {:badfun, self}}}
   end
 
   test "callback not function - named" do
@@ -49,11 +49,30 @@ defmodule WormholeTest do
     assert r |> elem(1) == {:shutdown, :undef}
   end
 
+  test "retry count - fail" do
+    retry_count = 3
+    options = [timeout_ms: 100, retry_count: retry_count, backoff_ms: 10]
+    assert Wormhole.capture(__MODULE__, :send_pid_and_freeze, [self], options) ==
+            {:error, {:timeout, 100}}
+    for _ <- 1..retry_count do
+      assert_receive({:worker_pid, _})
+    end
+  end
+
+  test "retry count - pass" do
+    retry_count = 3
+    options = [retry_count: retry_count]
+    tester = self
+    assert Wormhole.capture(fn-> send(tester, :aaa) end, options) == {:ok, :aaa}
+    assert_receive(:aaa)
+    refute_receive(:aaa, 300)
+  end
+
   def foo_function do :foo end
 
   def bar_function(arg) do {:bar, arg} end
 
-  def send_pid(destination) do
+  def send_pid_and_freeze(destination) do
     send destination, {:worker_pid, self}
     :timer.sleep :infinity
   end
