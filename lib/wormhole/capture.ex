@@ -3,14 +3,8 @@ defmodule Wormhole.Capture do
 
   alias Wormhole.Defaults
 
-  def capture(callback, options) do
+  def exec(callback, options) do
     capture_(callback, options)
-    |> logger(callback)
-  end
-
-  def capture(module, function, args, options) do
-    capture_(fn-> apply(module, function, args) end, options)
-    |> logger({module, function, args})
   end
 
 
@@ -66,10 +60,4 @@ defmodule Wormhole.Capture do
           callback, timeout_ms, retry_count, backoff_ms)
   end
 
-  defp logger(response = {:ok, _},    _callback), do: response
-  defp logger(response = {:error, reason}, callback)   do
-    Logger.warn "#{__MODULE__}{#{inspect self}}:: callback: #{inspect callback}; reason: #{inspect reason}";
-
-    response
-  end
 end
