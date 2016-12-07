@@ -63,7 +63,8 @@ defmodule Wormhole do
   """
   def capture(callback, options \\ [])
   def capture(callback, options) do
-    Wormhole.Capture.capture(callback, options)
+    Wormhole.Capture.exec(callback, options)
+    |> logger(callback)
   end
 
 
@@ -82,9 +83,22 @@ defmodule Wormhole do
 
       iex> capture(:timer, :sleep, [:infinity], timeout_ms: 50)
       {:error, {:timeout, 50}}
+
+    iex> capture(Kernel, :exit, [:foos], [retry_count: 3, backoff_ms: 100])
+    {:error, {:shutdown, :foos}}
   """
   def capture(module, function, args, options \\ [])
   def capture(module, function, args, options) do
-    Wormhole.Capture.capture(module, function, args, options)
+    Wormhole.Capture.exec(fn-> apply(module, function, args) end, options)
+    |> logger({module, function, args})
+  end
+
+
+  defp logger(response = {:ok, _},         _callback), do: response
+  defp logger(response = {:error, reason}, callback)   do
+    require Logger
+    Logger.warn "#{__MODULE__}{#{inspect self}}:: callback: #{inspect callback}; reason: #{inspect reason}";
+
+    response
   end
 end
