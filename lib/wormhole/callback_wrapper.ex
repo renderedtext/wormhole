@@ -6,7 +6,15 @@ defmodule Wormhole.CallbackWrapper do
   def wrap(callback) do
     fn ->
       try do
-        callback.()
+        response = callback.()
+
+        # Do not send response to the caller if it timed-out
+        receive do
+          {:wormhole_timeout, :silence} ->
+            exit {:shutdown, :wormhole_timeout}
+          after 0 ->
+            response
+        end
       catch _key, error ->
         exit {:shutdown, error}
       end

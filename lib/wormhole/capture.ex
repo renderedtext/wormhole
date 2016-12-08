@@ -3,6 +3,7 @@ defmodule Wormhole.Capture do
 
   alias Wormhole.Defaults
 
+
   def exec(callback, options) do
     capture(callback, options)
   end
@@ -13,19 +14,23 @@ defmodule Wormhole.Capture do
     callback    = callback |> Wormhole.CallbackWrapper.wrap
 
     task = Task.Supervisor.async_nolink(:wormhole_task_supervisor, callback)
-    pid  = Map.get(task, :pid)
 
     task
     |> Task.yield(timeout_ms)
-    |> terminate_child(pid)
+    |> task_demonitor(task)
+    |> task_silence(task)
     |> response_format(timeout_ms)
   end
 
-  defp terminate_child(nil, pid) do
-    Task.Supervisor.terminate_child :wormhole_task_supervisor, pid
-    receive do {:DOWN, _, :process, ^pid, _} -> nil after 50 -> nil end
+  defp task_demonitor(response, task) do
+    Map.get(task, :ref) |> Process.demonitor([:flush])
+    response
   end
-  defp terminate_child(response, _pid) do response end
+
+  defp task_silence(response, task) do
+    Map.get(task, :pid) |> send({:wormhole_timeout, :silence})
+    response
+  end
 
   defp response_format({:ok,   state},  _)          do {:ok,    state} end
   defp response_format({:exit, reason}, _)          do {:error, reason} end
