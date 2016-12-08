@@ -34,7 +34,7 @@ def deps do
   ]
 end
 ```
-Add to the list of applications (only for Exrm):
+Add to the list of applications:
 ```elixir
 def application do
   [applications: [:wormhole]]

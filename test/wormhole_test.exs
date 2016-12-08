@@ -28,13 +28,13 @@ defmodule WormholeTest do
     assert r |> elem(1) == {:shutdown, "Something happened"}
   end
 
-  test "timeout - callback process killed?" do
+  test "timeout - callback process not killed?" do
     assert Wormhole.capture(__MODULE__, :send_pid_and_freeze, [self], timeout_ms: 100) ==
             {:error, {:timeout, 100}}
     :timer.sleep(100)
     receive do
       {:worker_pid, pid} ->
-        refute Process.alive?(pid)
+        assert Process.alive?(pid)
     end
   end
 
@@ -66,6 +66,13 @@ defmodule WormholeTest do
     assert Wormhole.capture(fn-> send(tester, :aaa) end, options) == {:ok, :aaa}
     assert_receive(:aaa)
     refute_receive(:aaa, 300)
+  end
+
+  test "if response arived after timeout" do
+    retry_count = 3
+    options = [timeout_ms: 100, retry_count: retry_count, backoff_ms: 10]
+    assert Wormhole.capture(fn-> :timer.sleep 150; :foo end, options) == {:error, {:timeout, 100}}
+    refute_receive({_, :foo})
   end
 
   def foo_function do :foo end
