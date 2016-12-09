@@ -31,6 +31,14 @@ defmodule Wormhole do
   By default there is no retry, but user can specify
   `retry_count` and `backoff_ms` in `options`.
   Default `backoff_ms` is #{Defaults.backoff_ms} milliseconds.
+
+  By default exceptions in callback-process are handled so that
+  supervisor does not generate CRUSH REPORT (when released - Exrm/Distillery).
+  This behavior can be overridden by setting `crush_report` to `true`.
+  Note:
+    - Crush report is not generated in Elixir by default.
+    - Letting exceptions propagate might be useful for
+      some other applications too (e.g sentry client).
   """
 
   @doc """
@@ -40,14 +48,14 @@ defmodule Wormhole do
       iex> capture(fn-> :a end)
       {:ok, :a}
 
-      iex> capture(fn-> raise "Something happened" end) |> elem(0)
-      :error
+      iex> capture(fn-> raise "Something happened" end)
+      {:error, {:shutdown, %RuntimeError{message: "Something happened"}}}
 
-      iex> capture(fn-> throw "Something happened" end) |> elem(0)
-      :error
+      iex> capture(fn-> throw "Something happened" end)
+      {:error, {:shutdown, {:throw, "Something happened"}}}
 
       iex> capture(fn-> exit :foo end)
-      {:error, {:shutdown, :foo}}
+      {:error, {:shutdown, {:exit, :foo}}}
 
       iex> capture(fn-> Process.exit(self, :foo) end)
       {:error, :foo}
@@ -59,7 +67,7 @@ defmodule Wormhole do
       {:error, {:timeout, 50}}
 
       iex> capture(fn-> exit :foo end, [retry_count: 3, backoff_ms: 100])
-      {:error, {:shutdown, :foo}}
+      {:error, {:shutdown, {:exit, :foo}}}
   """
   def capture(callback, options \\ [])
   def capture(callback, options) do
@@ -85,7 +93,7 @@ defmodule Wormhole do
       {:error, {:timeout, 50}}
 
     iex> capture(Kernel, :exit, [:foos], [retry_count: 3, backoff_ms: 100])
-    {:error, {:shutdown, :foos}}
+    {:error, {:shutdown, {:exit, :foos}}}
   """
   def capture(module, function, args, options \\ [])
   def capture(module, function, args, options) do

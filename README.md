@@ -25,6 +25,14 @@ Note: `retry_count` specifies maximum number of times `callback` can be invoked.
 More accurate name would be `try_count` but I think it would bring
 more confusion than clarity, hence the name remains.
 
+By default exceptions in callback-process are handled so that
+supervisor does not generate CRUSH REPORT (when released - Exrm/Distillery).
+This behavior can be overridden by setting `crush_report` to `true`.
+Note:
+  - Crush report is not generated in Elixir by default.
+  - Letting exceptions propagate might be useful for
+    some other applications too (e.g sentry client).
+
 ## Installation
 Add to the list of dependencies:
 ```elixir
