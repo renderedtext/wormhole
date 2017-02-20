@@ -25,7 +25,7 @@ defmodule WormholeTest do
   test "thrown exception - unnamed function, 1 arg" do
     r = Wormhole.capture(fn-> throw "Something happened" end)
     assert r |> elem(0) == :error
-    assert r |> elem(1) == {:shutdown, "Something happened"}
+    assert r |> elem(1) == {:shutdown, {:throw, "Something happened"}}
   end
 
   test "timeout - callback process not killed?" do
@@ -39,14 +39,14 @@ defmodule WormholeTest do
   end
 
   test "callback not function - unnamed" do
-    assert Wormhole.capture(:a)   == {:error, {:shutdown, {:badfun, :a}}}
-    assert Wormhole.capture(self) == {:error, {:shutdown, {:badfun, self}}}
+    assert Wormhole.capture(:a)   == {:error, {:shutdown, %BadFunctionError{term: :a}}}
+    assert Wormhole.capture(self) == {:error, {:shutdown, %BadFunctionError{term: self}}}
   end
 
   test "callback not function - named" do
     r = Wormhole.capture(List, :foo, [])
-    assert r |> elem(0) == :error
-    assert r |> elem(1) == {:shutdown, :undef}
+    raised = struct(UndefinedFunctionError, %{arity: 0, function: :foo, module: List})
+    assert r == {:error, {:shutdown, raised}}
   end
 
   test "retry count - fail" do
