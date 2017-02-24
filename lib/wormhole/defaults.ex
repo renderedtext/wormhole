@@ -3,4 +3,5 @@ defmodule Wormhole.Defaults do
   def retry_count, do: 1
   def backoff_ms,  do: 1_000
   def crush_report,  do: false
+  def jitter, do: :rand.uniform(250)
 end
