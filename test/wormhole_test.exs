@@ -75,6 +75,13 @@ defmodule WormholeTest do
     refute_receive({_, :foo})
   end
 
+  test "if response arived after timeout with jitter" do
+    retry_count = 3
+    options = [timeout_ms: 100, retry_count: retry_count, backoff_ms: 10, jitter: true]
+    assert Wormhole.capture(fn-> :timer.sleep 150; :foo end, options) == {:error, {:timeout, 100}}
+    refute_receive({_, :foo})
+  end
+
   def foo_function do :foo end
 
   def bar_function(arg) do {:bar, arg} end

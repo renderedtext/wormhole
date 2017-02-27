@@ -31,11 +31,19 @@ defmodule Wormhole.Retry do
 
   defp capture_response(response={:ok, _}, _, _, _) do response end
   defp capture_response(response, callback, options, retry_count) do
-    backoff_ms  = Keyword.get(options, :backoff_ms)  || Defaults.backoff_ms
+    backoff_ms  = Keyword.get(options, :backoff_ms) || Defaults.backoff_ms
+    jitter = Keyword.get(options, :jitter) && Defaults.jitter
 
     retry_count - 1
-    |> backoff(backoff_ms, response)
+    |> backoff(backoff_ms, response, jitter)
     |> call_capture(callback, options, response)
+  end
+
+  defp backoff(retry_count, backoff_ms, response, jitter=nil) do
+    backoff(retry_count, backoff_ms, response)
+  end
+  defp backoff(retry_count, backoff_ms, response, jitter) do
+    backoff(retry_count, backoff_ms + jitter, response)
   end
 
   defp backoff(retry_count=0, _backoff_ms, _response) do retry_count end
