@@ -105,7 +105,7 @@ defmodule Wormhole do
   defp logger(response = {:ok, _},         _callback), do: response
   defp logger(response = {:error, reason}, callback)   do
     require Logger
-    Logger.warn "#{__MODULE__}{#{inspect self}}:: callback: #{inspect callback}; reason: #{inspect reason}";
+    Logger.warn "#{__MODULE__}{#{inspect self()}}:: callback: #{inspect callback}; reason: #{inspect reason}";
 
     response
   end

@@ -39,7 +39,7 @@ defmodule Wormhole.Retry do
     |> call_capture(callback, options, response)
   end
 
-  defp backoff(retry_count, backoff_ms, response, jitter=nil) do
+  defp backoff(retry_count, backoff_ms, response, _jitter=nil) do
     backoff(retry_count, backoff_ms, response)
   end
   defp backoff(retry_count, backoff_ms, response, jitter) do
@@ -48,7 +48,7 @@ defmodule Wormhole.Retry do
 
   defp backoff(retry_count=0, _backoff_ms, _response) do retry_count end
   defp backoff(retry_count, backoff_ms, response) do
-    Logger.warn "#{__MODULE__}{#{inspect self}}:: Retries remaining #{retry_count}, reason: #{inspect response}"
+    Logger.warn "#{__MODULE__}{#{inspect self()}}:: Retries remaining #{retry_count}, reason: #{inspect response}"
     :timer.sleep(backoff_ms)
     retry_count
   end
