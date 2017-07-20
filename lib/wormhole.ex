@@ -1,27 +1,11 @@
 defmodule Wormhole do
-  use Application
-
   alias Wormhole.Defaults
 
-  def start(_type, _args) do
-    import Supervisor.Spec, warn: false
-
-    children = [
-      worker(Task.Supervisor, [[name: :wormhole_task_supervisor]]),
-    ]
-
-    opts = [strategy: :one_for_one, name: Wormhole.Supervisor]
-    Supervisor.start_link(children, opts)
-  end
-
-
-  #################  API  #################
-
-  @description """
+  @moduledoc """
   Invokes `callback` in separate process and
   waits for message from callback process containing callback return value
   if finished successfully or
-  error reason if callback process failed for any reason.
+  error reason if callback process failed.
 
   If `callback` execution is not finished within specified timeout,
   kills `callback` process and returns error.
@@ -42,7 +26,7 @@ defmodule Wormhole do
   """
 
   @doc """
-  #{@description}
+  Invokes callback in separate process.
 
   Examples:
       iex> capture(fn-> :a end)
@@ -77,7 +61,7 @@ defmodule Wormhole do
 
 
   @doc """
-  #{@description}
+  Calls capture/2 internally.
 
   Examples:
       iex> capture(Enum, :count, [[]])
@@ -92,8 +76,8 @@ defmodule Wormhole do
       iex> capture(:timer, :sleep, [:infinity], timeout_ms: 50)
       {:error, {:timeout, 50}}
 
-    iex> capture(Kernel, :exit, [:foos], [retry_count: 3, backoff_ms: 100])
-    {:error, {:shutdown, {:exit, :foos}}}
+      iex> capture(Kernel, :exit, [:foos], [retry_count: 3, backoff_ms: 100])
+      {:error, {:shutdown, {:exit, :foos}}}
   """
   def capture(module, function, args, options \\ [])
   def capture(module, function, args, options) do

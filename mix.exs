@@ -3,7 +3,7 @@ defmodule Wormhole.Mixfile do
 
   def project do
     [app: :wormhole,
-     version: "1.4.3",
+     version: "1.4.4",
      elixir: "~> 1.2",
      build_embedded: Mix.env == :prod,
      start_permanent: Mix.env == :prod,
@@ -14,7 +14,7 @@ defmodule Wormhole.Mixfile do
 
   def application do
     [applications: [:logger],
-     mod: {Wormhole, []}]
+     mod: {Wormhole.Application, []}]
   end
 
   defp deps do
