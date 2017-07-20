@@ -3,33 +3,40 @@ defmodule Wormhole.Mixfile do
 
   def project do
     [app: :wormhole,
-     version: "1.4.2",
+     version: "1.4.3",
      elixir: "~> 1.2",
      build_embedded: Mix.env == :prod,
      start_permanent: Mix.env == :prod,
+     description: description(),
+     package: package(),
      deps: deps()]
   end
 
-  # Configuration for the OTP application
-  #
-  # Type "mix help compile.app" for more information
   def application do
     [applications: [:logger],
      mod: {Wormhole, []}]
   end
 
-  # Dependencies can be Hex packages:
-  #
-  #   {:mydep, "~> 0.3.0"}
-  #
-  # Or git/path repositories:
-  #
-  #   {:mydep, git: "https://github.com/elixir-lang/mydep.git", tag: "0.1.0"}
-  #
-  # Type "mix help deps" for more examples and options
   defp deps do
     [
       {:logger_file_backend, "~> 0.0.6", only: :test},
+      {:ex_doc, ">= 0.0.0", only: :dev},
+    ]
+  end
+
+  defp description do
+    """
+    Wormhole captures anything that is emitted out of the callback
+    (return value or error reason) and transfers it to the calling process
+    in the form {:ok, state} or {:error, reason}.
+    """
+  end
+
+  defp package do
+    [
+      maintainers: ["Predrag Rakic"],
+      licenses: ["MIT"],
+      links: %{"GitHub" => "https://github.com/renderedtext/wormhole"}
     ]
   end
 end
