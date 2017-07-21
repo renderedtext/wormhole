@@ -38,7 +38,7 @@ Add to the list of dependencies:
 ```elixir
 def deps do
   [
-    {:wormhole, github: "renderedtext/wormhole"}
+    {:wormhole, "~> 1.4"}
   ]
 end
 ```
