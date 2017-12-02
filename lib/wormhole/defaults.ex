@@ -4,4 +4,5 @@ defmodule Wormhole.Defaults do
   def backoff_ms,  do: 1_000
   def crush_report,  do: false
   def jitter, do: :rand.uniform(250)
+  def skip_log,  do: false
 end

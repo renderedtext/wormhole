@@ -56,7 +56,7 @@ defmodule Wormhole do
   def capture(callback, options \\ [])
   def capture(callback, options) do
     Wormhole.Retry.exec(callback, options)
-    |> logger(callback)
+    |> logger(callback, options)
   end
 
 
@@ -82,14 +82,16 @@ defmodule Wormhole do
   def capture(module, function, args, options \\ [])
   def capture(module, function, args, options) do
     Wormhole.Retry.exec(fn-> apply(module, function, args) end, options)
-    |> logger({module, function, args})
+    |> logger({module, function, args}, options)
   end
 
 
-  defp logger(response = {:ok, _},         _callback), do: response
-  defp logger(response = {:error, reason}, callback)   do
-    require Logger
-    Logger.warn "#{__MODULE__}{#{inspect self()}}:: callback: #{inspect callback}; reason: #{inspect reason}";
+  defp logger(response = {:ok, _},         _callback, _options), do: response
+  defp logger(response = {:error, reason}, callback,  options)   do
+    if (!(Keyword.get(options, :skip_log) || Defaults.skip_log)) do
+      require Logger
+      Logger.warn "#{__MODULE__}{#{inspect self()}}:: callback: #{inspect callback}; reason: #{inspect reason}";
+    end
 
     response
   end
