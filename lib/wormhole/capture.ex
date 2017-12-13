@@ -12,8 +12,9 @@ defmodule Wormhole.Capture do
   defp capture(callback, options) do
     timeout_ms   = Keyword.get(options, :timeout_ms)   || Defaults.timeout_ms
     crush_report = Keyword.get(options, :crush_report) || Defaults.crush_report
+    stacktrace?  = Keyword.get(options, :stacktrace)   || Defaults.stacktrace
 
-    callback = callback |> Wormhole.CallbackWrapper.wrap(crush_report)
+    callback = callback |> Wormhole.CallbackWrapper.wrap(crush_report, stacktrace?)
     task = Task.Supervisor.async_nolink(:wormhole_task_supervisor, callback)
 
     task
