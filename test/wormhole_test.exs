@@ -22,10 +22,24 @@ defmodule WormholeTest do
     assert r |> elem(1) == {:shutdown, %RuntimeError{message: "Something happened"}}
   end
 
+  test "raised exception - unnamed function, 1 arg, stacktrace" do
+    r = Wormhole.capture(fn-> raise "Something happened" end, stacktrace: true)
+    assert r |> elem(0) == :error
+    assert {:shutdown, {%RuntimeError{message: "Something happened"}, stacktrace}} = elem(r, 1)
+    assert stacktrace |> is_list()
+  end
+
   test "thrown exception - unnamed function, 1 arg" do
     r = Wormhole.capture(fn-> throw "Something happened" end)
     assert r |> elem(0) == :error
     assert r |> elem(1) == {:shutdown, {:throw, "Something happened"}}
+  end
+
+  test "thrown exception - unnamed function, 1 arg, stacktrace" do
+    r = Wormhole.capture(fn-> throw "Something happened" end, stacktrace: true)
+    assert r |> elem(0) == :error
+    assert {:shutdown, {:throw, "Something happened", stacktrace}} = elem(r, 1)
+    assert stacktrace |> is_list()
   end
 
   test "timeout - callback process not killed?" do
@@ -43,10 +57,26 @@ defmodule WormholeTest do
     assert Wormhole.capture(self) == {:error, {:shutdown, %BadFunctionError{term: self}}}
   end
 
+  test "callback not function - unnamed, stacktrace" do
+    assert {:error, {:shutdown, {%BadFunctionError{term: :a}, stacktrace}}} =
+      Wormhole.capture(:a, stacktrace: true)
+    assert stacktrace |> is_list()
+    assert {:error, {:shutdown, {%BadFunctionError{term: self}, stacktrace}}} =
+      Wormhole.capture(self, stacktrace: true)
+    assert stacktrace |> is_list()
+  end
+
   test "callback not function - named" do
     r = Wormhole.capture(List, :foo, [])
     raised = struct(UndefinedFunctionError, %{arity: 0, function: :foo, module: List})
     assert r == {:error, {:shutdown, raised}}
+  end
+
+  test "callback not function - named, stacktrace" do
+    r = Wormhole.capture(List, :foo, [], stacktrace: true)
+    raised = struct(UndefinedFunctionError, %{arity: 0, function: :foo, module: List})
+    assert {:error, {:shutdown, {raised, stacktrace}}} = r
+    assert(stacktrace |> is_list())
   end
 
   test "retry count - fail" do

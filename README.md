@@ -17,6 +17,11 @@ If `callback` execution is not finished within specified timeout,
 Default timeout value is specified in `@timeout_ms`.
 User can specify `timeout_ms` in `options` keyword list.
 
+By default if callback fails stacktrace will **not** be returned.
+User can set `stacktrace` option to `true` and in that case stacktrace will
+be returned in response.
+Note: `stacktrace` option works only if `crush_report` is not enabled.
+
 By default there is no retry, but user can specify
 `retry_count` and `backoff_ms` in `options`.
 Default back-off time value is specified in `@backoff_ms`.

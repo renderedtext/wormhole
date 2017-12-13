@@ -3,21 +3,21 @@ defmodule Wormhole.CallbackWrapper do
   @doc """
   Prevent callback from generating crush report.
   """
-  def wrap(callback, crush_report) do
-    fn -> callback |> catch_errors(crush_report) end
+  def wrap(callback, crush_report, stacktrace?) do
+    fn -> callback |> catch_errors(crush_report, stacktrace?) end
   end
 
 
-  defp catch_errors(callback, _crush_report=true) do
+  defp catch_errors(callback, _crush_report=true, _stacktrace?) do
     callback.() |> scilence_task
   end
-  defp catch_errors(callback, _crush_report=false) do
+  defp catch_errors(callback, _crush_report=false, stacktrace?) do
     try do
       callback.() |> scilence_task
     rescue error ->
-      exit {:shutdown, error}
+      exit(exit_arg(error, stacktrace?))
     catch key, error ->
-      exit {:shutdown, {key, error}}
+      exit(exit_arg(key, error, stacktrace?))
     end
   end
 
@@ -30,4 +30,13 @@ defmodule Wormhole.CallbackWrapper do
         response
     end
   end
+
+  defp exit_arg(error, stacktrace?=false), do:
+    {:shutdown, error}
+  defp exit_arg(key, error, stacktrace?=false), do:
+    {:shutdown, {key, error}}
+  defp exit_arg(error, stacktrace?=true), do:
+    {:shutdown, {error, System.stacktrace()}}
+  defp exit_arg(key, error, stacktrace?=true), do:
+    {:shutdown, {key, error, System.stacktrace()}}
 end

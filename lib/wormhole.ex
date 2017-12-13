@@ -12,6 +12,11 @@ defmodule Wormhole do
   Default timeout is #{Defaults.timeout_ms} milliseconds.
   User can specify `timeout_ms` in `options` keyword list.
 
+  By default if callback fails stacktrace will **not** be returned.
+  User can set `stacktrace` option to `true` and in that case stacktrace will
+  be returned in response.
+  Note: `stacktrace` option works only if `crush_report` is not enabled.
+
   By default there is no retry, but user can specify
   `retry_count` and `backoff_ms` in `options`.
   Default `backoff_ms` is #{Defaults.backoff_ms} milliseconds.
