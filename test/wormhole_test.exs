@@ -43,7 +43,7 @@ defmodule WormholeTest do
   end
 
   test "timeout - callback process not killed?" do
-    assert Wormhole.capture(__MODULE__, :send_pid_and_freeze, [self], timeout_ms: 100) ==
+    assert Wormhole.capture(__MODULE__, :send_pid_and_freeze, [self()], timeout_ms: 100) ==
             {:error, {:timeout, 100}}
     :timer.sleep(100)
     receive do
@@ -54,15 +54,16 @@ defmodule WormholeTest do
 
   test "callback not function - unnamed" do
     assert Wormhole.capture(:a)   == {:error, {:shutdown, %BadFunctionError{term: :a}}}
-    assert Wormhole.capture(self) == {:error, {:shutdown, %BadFunctionError{term: self}}}
+    assert Wormhole.capture(self()) == {:error, {:shutdown, %BadFunctionError{term: self()}}}
   end
 
   test "callback not function - unnamed, stacktrace" do
     assert {:error, {:shutdown, {%BadFunctionError{term: :a}, stacktrace}}} =
       Wormhole.capture(:a, stacktrace: true)
     assert stacktrace |> is_list()
-    assert {:error, {:shutdown, {%BadFunctionError{term: self}, stacktrace}}} =
-      Wormhole.capture(self, stacktrace: true)
+    self = self()
+    assert {:error, {:shutdown, {%BadFunctionError{term: ^self}, stacktrace}}} =
+      Wormhole.capture(self(), stacktrace: true)
     assert stacktrace |> is_list()
   end
 
@@ -75,14 +76,14 @@ defmodule WormholeTest do
   test "callback not function - named, stacktrace" do
     r = Wormhole.capture(List, :foo, [], stacktrace: true)
     raised = struct(UndefinedFunctionError, %{arity: 0, function: :foo, module: List})
-    assert {:error, {:shutdown, {raised, stacktrace}}} = r
+    assert {:error, {:shutdown, {^raised, stacktrace}}} = r
     assert(stacktrace |> is_list())
   end
 
   test "retry count - fail" do
     retry_count = 3
     options = [timeout_ms: 100, retry_count: retry_count, backoff_ms: 10]
-    assert Wormhole.capture(__MODULE__, :send_pid_and_freeze, [self], options) ==
+    assert Wormhole.capture(__MODULE__, :send_pid_and_freeze, [self()], options) ==
             {:error, {:timeout, 100}}
     for _ <- 1..retry_count do
       assert_receive({:worker_pid, _})
@@ -92,7 +93,7 @@ defmodule WormholeTest do
   test "retry count - pass" do
     retry_count = 3
     options = [retry_count: retry_count]
-    tester = self
+    tester = self()
     assert Wormhole.capture(fn-> send(tester, :aaa) end, options) == {:ok, :aaa}
     assert_receive(:aaa)
     refute_receive(:aaa, 300)
@@ -117,7 +118,7 @@ defmodule WormholeTest do
   def bar_function(arg) do {:bar, arg} end
 
   def send_pid_and_freeze(destination) do
-    send destination, {:worker_pid, self}
+    send destination, {:worker_pid, self()}
     :timer.sleep :infinity
   end
 end
