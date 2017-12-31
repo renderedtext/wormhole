@@ -42,14 +42,21 @@ defmodule WormholeTest do
     assert stacktrace |> is_list()
   end
 
-  test "timeout - callback process not killed?" do
+  test "timeout - callback process killed" do
     assert Wormhole.capture(__MODULE__, :send_pid_and_freeze, [self()], timeout_ms: 100) ==
             {:error, {:timeout, 100}}
     :timer.sleep(100)
     receive do
       {:worker_pid, pid} ->
-        assert Process.alive?(pid)
+        assert not Process.alive?(pid)
     end
+  end
+
+  test "timeout - nested callback process killed when top one timesouts" do
+    IO.puts "My pid: #{inspect self()}"
+    spawn(__MODULE__, :nested_captured_processes, [self()])
+
+    assert_receive({:error, {:EXIT, _, :shutdown}}, 140)
   end
 
   test "callback not function - unnamed" do
@@ -120,5 +127,16 @@ defmodule WormholeTest do
   def send_pid_and_freeze(destination) do
     send destination, {:worker_pid, self()}
     :timer.sleep :infinity
+  end
+
+  def nested_captured_processes(master) do
+    Wormhole.capture(fn ->
+      Wormhole.capture(fn ->
+        Process.flag(:trap_exit, true)
+        receive do
+          msg = {:EXIT, _, _} -> send(master, {:error, msg})
+        end
+      end, timeout_ms: 200)
+    end, timeout_ms: 100)
   end
 end
