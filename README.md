@@ -51,14 +51,8 @@ Add to the list of dependencies:
 ```elixir
 def deps do
   [
-    {:wormhole, "~> 1.4"}
+    {:wormhole, "~> 2.0"}
   ]
-end
-```
-Add to the list of applications:
-```elixir
-def application do
-  [applications: [:wormhole]]
 end
 ```
 
