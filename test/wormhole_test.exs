@@ -43,7 +43,7 @@ defmodule WormholeTest do
   end
 
   test "timeout - callback process killed" do
-    assert Wormhole.capture(__MODULE__, :send_pid_and_freeze, [self()], timeout_ms: 100) ==
+    assert Wormhole.capture(__MODULE__, :send_pid_and_freeze, [self()], timeout: 100) ==
             {:error, {:timeout, 100}}
     :timer.sleep(100)
     receive do
@@ -89,7 +89,7 @@ defmodule WormholeTest do
 
   test "retry count - fail" do
     retry_count = 3
-    options = [timeout_ms: 100, retry_count: retry_count, backoff_ms: 10]
+    options = [timeout: 100, retry_count: retry_count, backoff_ms: 10]
     assert Wormhole.capture(__MODULE__, :send_pid_and_freeze, [self()], options) ==
             {:error, {:timeout, 100}}
     for _ <- 1..retry_count do
@@ -108,14 +108,14 @@ defmodule WormholeTest do
 
   test "if response arived after timeout" do
     retry_count = 3
-    options = [timeout_ms: 100, retry_count: retry_count, backoff_ms: 10]
+    options = [timeout: 100, retry_count: retry_count, backoff_ms: 10]
     assert Wormhole.capture(fn-> :timer.sleep 150; :foo end, options) == {:error, {:timeout, 100}}
     refute_receive({_, :foo})
   end
 
   test "if response arived after timeout with jitter" do
     retry_count = 3
-    options = [timeout_ms: 100, retry_count: retry_count, backoff_ms: 10, jitter: true]
+    options = [timeout: 100, retry_count: retry_count, backoff_ms: 10, jitter: true]
     assert Wormhole.capture(fn-> :timer.sleep 150; :foo end, options) == {:error, {:timeout, 100}}
     refute_receive({_, :foo})
   end
@@ -136,7 +136,7 @@ defmodule WormholeTest do
         receive do
           msg = {:EXIT, _, _} -> send(master, {:error, msg})
         end
-      end, timeout_ms: 200)
-    end, timeout_ms: 100)
+      end, timeout: 200)
+    end, timeout: 100)
   end
 end
