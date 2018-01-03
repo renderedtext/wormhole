@@ -10,7 +10,9 @@ defmodule Wormhole.Capture do
 
 
   defp capture(callback, options) do
-    timeout_ms   = Keyword.get(options, :timeout_ms)   || Defaults.timeout_ms
+    # `timeout_ms` option is deprecated in favor of `timeout`
+    timeout_ms   = Keyword.get(options, :timeout_ms)   || Defaults.timeout
+    timeout      = Keyword.get(options, :timeout)      || timeout_ms
     crush_report = Keyword.get(options, :crush_report) || Defaults.crush_report
     stacktrace?  = Keyword.get(options, :stacktrace)   || Defaults.stacktrace
 
@@ -19,13 +21,13 @@ defmodule Wormhole.Capture do
     callback = callback |> Wormhole.CallbackWrapper.wrap(crush_report, stacktrace?)
     task = Task.Supervisor.async_nolink(supervisor, callback)
 
-    response = Task.yield(task, timeout_ms)
+    response = Task.yield(task, timeout)
 
     supervisor_terminate(supervisor)
     task_demonitor(task)
     task_silence(task)
 
-    response_format(response, timeout_ms)
+    response_format(response, timeout)
   end
 
   defp supervisor_terminate(supervisor), do: Process.exit(supervisor, :normal)
@@ -38,6 +40,6 @@ defmodule Wormhole.Capture do
 
   defp response_format({:ok,   state},  _)          do {:ok,    state} end
   defp response_format({:exit, reason}, _)          do {:error, reason} end
-  defp response_format(nil,             timeout_ms) do {:error, {:timeout, timeout_ms}} end
+  defp response_format(nil,             timeout)    do {:error, {:timeout, timeout}} end
 
 end

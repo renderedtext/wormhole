@@ -28,9 +28,9 @@ defmodule BeholderTest do
         Wormhole.capture(fn ->
           Process.register(self(), :wh_srv_3)
           :timer.sleep(20_000)
-        end, timeout_ms: 16_000)
-      end, timeout_ms: 17_000)
-    end, timeout_ms: 19_000)
+        end, timeout: 16_000)
+      end, timeout: 17_000)
+    end, timeout: 19_000)
     |> IO.inspect(label: "WH result")
   end
 
