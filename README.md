@@ -18,6 +18,9 @@ waits for message from callback process containing callback return value
 if finished successfully or
 error reason if callback process failed for any reason.
 
+In case of failure, failure reason is logged with severity `warn`,
+unless option `skip_log` is set to true.
+
 If `callback` execution is not finished within specified timeout,
 `callback` process is killed and error returned.
 Default timeout value is specified in `@timeout`.
