@@ -1,4 +1,17 @@
 defmodule Wormhole.Capture do
+  @moduledoc """
+  Caller ------> Terminator <=====> Callback
+    ^                                  |
+     \                                 |
+      ---------------------------------
+
+  Caller process is monitoring Callback proces.
+  In case of Callback cresh, DOWN message contains reason (return value).
+
+  Terminator process is monitoring Caller proces and is linked with Callback.
+  If Caller crashes, Terminator calls exits(:normal) and stops execution
+  of Callback proces.
+  """
   require Logger
 
   alias Wormhole.Defaults
@@ -16,30 +29,44 @@ defmodule Wormhole.Capture do
     crush_report = Keyword.get(options, :crush_report) || Defaults.crush_report
     stacktrace?  = Keyword.get(options, :stacktrace)   || Defaults.stacktrace
 
-    {:ok, supervisor} = Task.Supervisor.start_link(restart: :temporary, shutdown: 50)
+    {callback_pid, callback_ref} =
+      callback
+      |> Wormhole.CallbackWrapper.wrap(self(), crush_report, stacktrace?)
+      |> spawn_monitor()
 
-    callback = callback |> Wormhole.CallbackWrapper.wrap(crush_report, stacktrace?)
-    task = Task.Supervisor.async_nolink(supervisor, callback)
+    spawn(__MODULE__, :terminator_fn, [self(), callback_pid])
 
-    response = Task.yield(task, timeout)
-
-    supervisor_terminate(supervisor)
-    task_demonitor(task)
-    task_silence(task)
-
-    response_format(response, timeout)
+    wait_for_response(callback_pid, callback_ref, timeout)
   end
 
-  defp supervisor_terminate(supervisor), do: Process.exit(supervisor, :normal)
+  def terminator_fn(caller_pid, callback_pid) do
+    caller_ref = Process.monitor(caller_pid)
+    try do
+      Process.link(callback_pid)
+    catch
+      _, _ -> exit(:shutdown)
+    end
 
-  defp task_demonitor(task), do:
-    task |> Map.get(:ref) |> Process.demonitor([:flush])
+    receive do
+      # If caller is DOWN
+      {:DOWN, ^caller_ref, :process, ^caller_pid, _reason} ->
+        # Exit and terminate callback process
+        exit(:shutdown)
+    end
+  end
 
-  defp task_silence(task), do:
-    task |> Map.get(:pid) |> send({:wormhole_timeout, :silence})
-
-  defp response_format({:ok,   state},  _)          do {:ok,    state} end
-  defp response_format({:exit, reason}, _)          do {:error, reason} end
-  defp response_format(nil,             timeout)    do {:error, {:timeout, timeout}} end
-
+  defp wait_for_response(callback_pid, callback_ref, timeout) do
+    receive do
+      {:wormhole, ^callback_pid, state} ->
+        Process.demonitor(callback_ref, [:flush])
+        {:ok, state}
+      {:DOWN, ^callback_ref, :process, ^callback_pid, reason} ->
+        {:error, reason}
+    after
+      timeout ->
+        Process.demonitor(callback_ref, [:flush])
+        Process.exit(callback_pid, :shutdown)
+        {:error, {:timeout, timeout}}
+    end
+  end
 end

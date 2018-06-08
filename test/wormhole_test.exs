@@ -48,7 +48,7 @@ defmodule WormholeTest do
     :timer.sleep(100)
     receive do
       {:worker_pid, pid} ->
-        assert not Process.alive?(pid)
+        refute Process.alive?(pid)
     end
   end
 
@@ -118,6 +118,28 @@ defmodule WormholeTest do
     options = [timeout: 100, retry_count: retry_count, backoff_ms: 10, jitter: true]
     assert Wormhole.capture(fn-> :timer.sleep 150; :foo end, options) == {:error, {:timeout, 100}}
     refute_receive({_, :foo})
+  end
+
+  test "if there is processes leak in happy path - standard process" do
+    call_capture_and_count_processes(fn -> :timer.sleep(30) end)
+  end
+
+  test "if there is processes leak in happy path - very short process" do
+    call_capture_and_count_processes(fn -> :a end)
+  end
+
+  test "if there is processes leak when capture() times-out" do
+    call_capture_and_count_processes(fn -> :timer.sleep(300) end)
+  end
+
+  defp call_capture_and_count_processes(callback) do
+    :timer.sleep(15)
+    process_count = Process.list |> length
+
+    Wormhole.capture(callback, timeout: 100)
+
+    :timer.sleep(15)
+    assert process_count == Process.list |> length
   end
 
   def foo_function do :foo end

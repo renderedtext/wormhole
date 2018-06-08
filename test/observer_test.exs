@@ -12,25 +12,33 @@ defmodule BeholderTest do
     Supervisor.start_child(Wormhole.Supervisor,
       %{
         id: :nesto,
-        start: {__MODULE__, :start_wormhole, []},
-        restart: :temporary,
+        start: {__MODULE__, :start_link, []},
+        restart: :permanent,
       }
     )
 
-    # :timer.sleep 10_000
+    :timer.sleep :infinity
+  end
+
+  def start_link() do
+    pid = spawn_link(&start_wormhole/0)
+    {:ok, pid}
   end
 
   def start_wormhole do
-    Wormhole.capture(fn ->
+    fn ->
       Process.register(self(), :wh_srv_1)
-      Wormhole.capture(fn ->
+      fn ->
         Process.register(self(), :wh_srv_2)
-        Wormhole.capture(fn ->
+        fn ->
           Process.register(self(), :wh_srv_3)
           :timer.sleep(20_000)
-        end, timeout: 16_000)
-      end, timeout: 17_000)
-    end, timeout: 19_000)
+        end
+        |> Wormhole.capture(timeout: 16_000)
+      end
+      |> Wormhole.capture(timeout: 17_000)
+    end
+    |> Wormhole.capture(timeout: 19_000)
     |> IO.inspect(label: "WH result")
   end
 
