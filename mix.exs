@@ -27,8 +27,8 @@ defmodule Wormhole.Mixfile do
   defp description do
     """
     Wormhole captures anything that is emitted out of the callback
-    (return value or error reason) and transfers it to the calling process
-    in the form {:ok, state} or {:error, reason}.
+    (return value or any kind of exception) and transfers it
+    to the calling process in the form {:ok, state} or {:error, reason}.
     """
   end
 
