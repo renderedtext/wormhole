@@ -54,7 +54,7 @@ Add to the list of dependencies:
 ```elixir
 def deps do
   [
-    {:wormhole, "~> 2.0"}
+    {:wormhole, "~> 2.2"}
   ]
 end
 ```
