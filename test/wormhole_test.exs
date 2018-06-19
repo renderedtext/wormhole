@@ -42,27 +42,35 @@ defmodule WormholeTest do
     assert stacktrace |> is_list()
   end
 
-  test "timeout - callback process not killed?" do
-    assert Wormhole.capture(__MODULE__, :send_pid_and_freeze, [self], timeout_ms: 100) ==
+  test "timeout - callback process killed" do
+    assert Wormhole.capture(__MODULE__, :send_pid_and_freeze, [self()], timeout: 100) ==
             {:error, {:timeout, 100}}
     :timer.sleep(100)
     receive do
       {:worker_pid, pid} ->
-        assert Process.alive?(pid)
+        refute Process.alive?(pid)
     end
+  end
+
+  test "timeout - nested callback process killed when top one timesouts" do
+    IO.puts "My pid: #{inspect self()}"
+    spawn(__MODULE__, :nested_captured_processes, [self()])
+
+    assert_receive({:error, {:EXIT, _, :shutdown}}, 140)
   end
 
   test "callback not function - unnamed" do
     assert Wormhole.capture(:a)   == {:error, {:shutdown, %BadFunctionError{term: :a}}}
-    assert Wormhole.capture(self) == {:error, {:shutdown, %BadFunctionError{term: self}}}
+    assert Wormhole.capture(self()) == {:error, {:shutdown, %BadFunctionError{term: self()}}}
   end
 
   test "callback not function - unnamed, stacktrace" do
     assert {:error, {:shutdown, {%BadFunctionError{term: :a}, stacktrace}}} =
       Wormhole.capture(:a, stacktrace: true)
     assert stacktrace |> is_list()
-    assert {:error, {:shutdown, {%BadFunctionError{term: self}, stacktrace}}} =
-      Wormhole.capture(self, stacktrace: true)
+    self = self()
+    assert {:error, {:shutdown, {%BadFunctionError{term: ^self}, stacktrace}}} =
+      Wormhole.capture(self(), stacktrace: true)
     assert stacktrace |> is_list()
   end
 
@@ -75,14 +83,14 @@ defmodule WormholeTest do
   test "callback not function - named, stacktrace" do
     r = Wormhole.capture(List, :foo, [], stacktrace: true)
     raised = struct(UndefinedFunctionError, %{arity: 0, function: :foo, module: List})
-    assert {:error, {:shutdown, {raised, stacktrace}}} = r
+    assert {:error, {:shutdown, {^raised, stacktrace}}} = r
     assert(stacktrace |> is_list())
   end
 
   test "retry count - fail" do
     retry_count = 3
-    options = [timeout_ms: 100, retry_count: retry_count, backoff_ms: 10]
-    assert Wormhole.capture(__MODULE__, :send_pid_and_freeze, [self], options) ==
+    options = [timeout: 100, retry_count: retry_count, backoff_ms: 10]
+    assert Wormhole.capture(__MODULE__, :send_pid_and_freeze, [self()], options) ==
             {:error, {:timeout, 100}}
     for _ <- 1..retry_count do
       assert_receive({:worker_pid, _})
@@ -92,7 +100,7 @@ defmodule WormholeTest do
   test "retry count - pass" do
     retry_count = 3
     options = [retry_count: retry_count]
-    tester = self
+    tester = self()
     assert Wormhole.capture(fn-> send(tester, :aaa) end, options) == {:ok, :aaa}
     assert_receive(:aaa)
     refute_receive(:aaa, 300)
@@ -100,16 +108,38 @@ defmodule WormholeTest do
 
   test "if response arived after timeout" do
     retry_count = 3
-    options = [timeout_ms: 100, retry_count: retry_count, backoff_ms: 10]
+    options = [timeout: 100, retry_count: retry_count, backoff_ms: 10]
     assert Wormhole.capture(fn-> :timer.sleep 150; :foo end, options) == {:error, {:timeout, 100}}
     refute_receive({_, :foo})
   end
 
   test "if response arived after timeout with jitter" do
     retry_count = 3
-    options = [timeout_ms: 100, retry_count: retry_count, backoff_ms: 10, jitter: true]
+    options = [timeout: 100, retry_count: retry_count, backoff_ms: 10, jitter: true]
     assert Wormhole.capture(fn-> :timer.sleep 150; :foo end, options) == {:error, {:timeout, 100}}
     refute_receive({_, :foo})
+  end
+
+  test "if there is processes leak in happy path - standard process" do
+    call_capture_and_count_processes(fn -> :timer.sleep(30) end)
+  end
+
+  test "if there is processes leak in happy path - very short process" do
+    call_capture_and_count_processes(fn -> :a end)
+  end
+
+  test "if there is processes leak when capture() times-out" do
+    call_capture_and_count_processes(fn -> :timer.sleep(300) end)
+  end
+
+  defp call_capture_and_count_processes(callback) do
+    :timer.sleep(15)
+    process_count = Process.list |> length
+
+    Wormhole.capture(callback, timeout: 100)
+
+    :timer.sleep(15)
+    assert process_count == Process.list |> length
   end
 
   def foo_function do :foo end
@@ -117,7 +147,18 @@ defmodule WormholeTest do
   def bar_function(arg) do {:bar, arg} end
 
   def send_pid_and_freeze(destination) do
-    send destination, {:worker_pid, self}
+    send destination, {:worker_pid, self()}
     :timer.sleep :infinity
+  end
+
+  def nested_captured_processes(master) do
+    Wormhole.capture(fn ->
+      Wormhole.capture(fn ->
+        Process.flag(:trap_exit, true)
+        receive do
+          msg = {:EXIT, _, _} -> send(master, {:error, msg})
+        end
+      end, timeout: 200)
+    end, timeout: 100)
   end
 end

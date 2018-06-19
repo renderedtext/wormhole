@@ -9,8 +9,8 @@ defmodule Wormhole do
 
   If `callback` execution is not finished within specified timeout,
   kills `callback` process and returns error.
-  Default timeout is #{Defaults.timeout_ms} milliseconds.
-  User can specify `timeout_ms` in `options` keyword list.
+  Default timeout is #{Defaults.timeout} milliseconds.
+  User can specify `timeout` in `options` keyword list.
 
   By default if callback fails stacktrace will **not** be returned.
   User can set `stacktrace` option to `true` and in that case stacktrace will
@@ -46,13 +46,13 @@ defmodule Wormhole do
       iex> capture(fn-> exit :foo end)
       {:error, {:shutdown, {:exit, :foo}}}
 
-      iex> capture(fn-> Process.exit(self, :foo) end)
+      iex> capture(fn-> Process.exit(self(), :foo) end)
       {:error, :foo}
 
-      iex> capture(fn-> :timer.sleep 20 end, timeout_ms: 50)
+      iex> capture(fn-> :timer.sleep 20 end, timeout: 50)
       {:ok, :ok}
 
-      iex> capture(fn-> :timer.sleep :infinity end, timeout_ms: 50)
+      iex> capture(fn-> :timer.sleep :infinity end, timeout: 50)
       {:error, {:timeout, 50}}
 
       iex> capture(fn-> exit :foo end, [retry_count: 3, backoff_ms: 100])
@@ -75,10 +75,10 @@ defmodule Wormhole do
       iex> capture(Enum, :count, [:foo]) |> elem(0)
       :error
 
-      iex> capture(:timer, :sleep, [20], timeout_ms: 50)
+      iex> capture(:timer, :sleep, [20], timeout: 50)
       {:ok, :ok}
 
-      iex> capture(:timer, :sleep, [:infinity], timeout_ms: 50)
+      iex> capture(:timer, :sleep, [:infinity], timeout: 50)
       {:error, {:timeout, 50}}
 
       iex> capture(Kernel, :exit, [:foos], [retry_count: 3, backoff_ms: 100])

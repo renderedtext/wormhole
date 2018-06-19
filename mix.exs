@@ -3,8 +3,8 @@ defmodule Wormhole.Mixfile do
 
   def project do
     [app: :wormhole,
-     version: "1.5.0",
-     elixir: "~> 1.2",
+     version: "2.2.1",
+     elixir: "~> 1.4",
      build_embedded: Mix.env == :prod,
      start_permanent: Mix.env == :prod,
      description: description(),
@@ -27,8 +27,8 @@ defmodule Wormhole.Mixfile do
   defp description do
     """
     Wormhole captures anything that is emitted out of the callback
-    (return value or error reason) and transfers it to the calling process
-    in the form {:ok, state} or {:error, reason}.
+    (return value or any kind of exception) and transfers it
+    to the calling process in the form {:ok, state} or {:error, reason}.
     """
   end
 

@@ -2,6 +2,12 @@
 
 ![wormhole](wormhole.jpg)
 
+## Difference between v1 and v2
+In v1 callback that timed-out was left to run indefinitely.
+In v2, callback is terminated when it times-out.
+[Read more...](docs/v1_vs_v2.md)
+
+
 ## Description
 Wormhole captures anything that is emitted out of the callback
 (return value or error reason) and transfers it to the calling process
@@ -12,10 +18,15 @@ waits for message from callback process containing callback return value
 if finished successfully or
 error reason if callback process failed for any reason.
 
+In case of failure, failure reason is logged with severity `warn`,
+unless option `skip_log` is set to true.
+
 If `callback` execution is not finished within specified timeout,
 `callback` process is killed and error returned.
-Default timeout value is specified in `@timeout_ms`.
-User can specify `timeout_ms` in `options` keyword list.
+Default timeout value is specified in `@timeout`.
+User can specify `timeout` in `options` keyword list.
+
+Note: `timeout_ms` is deprecated in favor of `timeout`.
 
 By default if callback fails stacktrace will **not** be returned.
 User can set `stacktrace` option to `true` and in that case stacktrace will
@@ -43,14 +54,8 @@ Add to the list of dependencies:
 ```elixir
 def deps do
   [
-    {:wormhole, "~> 1.4"}
+    {:wormhole, "~> 2.2"}
   ]
-end
-```
-Add to the list of applications:
-```elixir
-def application do
-  [applications: [:wormhole]]
 end
 ```
 
@@ -76,10 +81,10 @@ iex> Wormhole.capture(Enum, :count, [[1,2,3]])
 
 Both versions with timeout explicitly set to 2 seconds:
 ```elixir
-iex> Wormhole.capture(&Process.list/0, timeout_ms: 2_000)
+iex> Wormhole.capture(&Process.list/0, timeout: 2_000)
 {:ok, [#PID<0.0.0>, #PID<0.3.0>, #PID<0.6.0>, #PID<0.7.0>, ...]}
 
-iex> Wormhole.capture(Enum, :count, [[1,2,3]], timeout_ms: 2_000)
+iex> Wormhole.capture(Enum, :count, [[1,2,3]], timeout: 2_000)
 {:ok, 3}
 ```
 
@@ -111,7 +116,7 @@ iex> Wormhole.capture(fn-> exit :foo end)
 
 ### Retry
 ```elixir
-iex> Wormhole.capture(&foo/0, [timeout_ms: 2_000, retry_count: 3, backoff_ms: 300])
+iex> Wormhole.capture(&foo/0, [timeout: 2_000, retry_count: 3, backoff_ms: 300])
 ```
 
 
