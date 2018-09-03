@@ -16,6 +16,10 @@ defmodule WormholeTest do
     assert Wormhole.capture(__MODULE__, :bar_function, [4]) == {:ok, {:bar, 4}}
   end
 
+  test "successful execution - named function - foo, 1 arg - ok_tuple" do
+    assert Wormhole.capture(&ok_function/0, ok_tuple: true) == {:ok, :state}
+  end
+
   test "raised exception - unnamed function, 1 arg" do
     r = Wormhole.capture(fn-> raise "Something happened" end)
     assert r |> elem(0) == :error
@@ -40,6 +44,10 @@ defmodule WormholeTest do
     assert r |> elem(0) == :error
     assert {:shutdown, {:throw, "Something happened", stacktrace}} = elem(r, 1)
     assert stacktrace |> is_list()
+  end
+
+  test " fail if not ok_tuple received" do
+    assert Wormhole.capture(&foo_function/0, ok_tuple: true) == {:error, :foo}
   end
 
   test "timeout - callback process killed" do
@@ -145,6 +153,8 @@ defmodule WormholeTest do
   def foo_function do :foo end
 
   def bar_function(arg) do {:bar, arg} end
+
+  def ok_function, do: {:ok, :state}
 
   def send_pid_and_freeze(destination) do
     send destination, {:worker_pid, self()}

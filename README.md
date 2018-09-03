@@ -1,60 +1,25 @@
 # Wormhole
 
+Wormhole captures anything that is emitted out of the callback
+(return value, error reason or process termination reason)
+and transfers it to the calling process
+in the form `{:ok, state}` or `{:error, reason}`.
+Read more in [description](#description)
+
 ![wormhole](wormhole.jpg)
 
 ## Difference between v1 and v2
 In v1 callback that timed-out was left to run indefinitely.
-In v2, callback is terminated when it times-out.
+In v2, callback is terminated when call times-out.
 [Read more...](docs/v1_vs_v2.md)
 
-
-## Description
-Wormhole captures anything that is emitted out of the callback
-(return value or error reason) and transfers it to the calling process
-in the form `{:ok, state}` or `{:error, reason}`.
-
-Wormhole invokes `callback` in separate process and
-waits for message from callback process containing callback return value
-if finished successfully or
-error reason if callback process failed for any reason.
-
-In case of failure, failure reason is logged with severity `warn`,
-unless option `skip_log` is set to true.
-
-If `callback` execution is not finished within specified timeout,
-`callback` process is killed and error returned.
-Default timeout value is specified in `@timeout`.
-User can specify `timeout` in `options` keyword list.
-
-Note: `timeout_ms` is deprecated in favor of `timeout`.
-
-By default if callback fails stacktrace will **not** be returned.
-User can set `stacktrace` option to `true` and in that case stacktrace will
-be returned in response.
-Note: `stacktrace` option works only if `crush_report` is not enabled.
-
-By default there is no retry, but user can specify
-`retry_count` and `backoff_ms` in `options`.
-Default back-off time value is specified in `@backoff_ms`.
-
-Note: `retry_count` specifies maximum number of times `callback` can be invoked.
-More accurate name would be `try_count` but I think it would bring
-more confusion than clarity, hence the name remains.
-
-By default exceptions in callback-process are handled so that
-supervisor does not generate CRUSH REPORT (when released - Exrm/Distillery).
-This behavior can be overridden by setting `crush_report` to `true`.
-Note:
-  - Crush report is not generated in Elixir by default.
-  - Letting exceptions propagate might be useful for
-    some other applications too (e.g sentry client).
 
 ## Installation
 Add to the list of dependencies:
 ```elixir
 def deps do
   [
-    {:wormhole, "~> 2.2"}
+    {:wormhole, "~> 2.3"}
   ]
 end
 ```
@@ -119,6 +84,18 @@ iex> Wormhole.capture(fn-> exit :foo end)
 iex> Wormhole.capture(&foo/0, [timeout: 2_000, retry_count: 3, backoff_ms: 300])
 ```
 
+### Expecting ok-tuple
+```elixir
+iex>  Wormhole.capture(fn-> {:ok, :a} end)
+{:ok, {:ok, :a}}
+
+iex> Wormhole.capture(fn-> {:ok, :a} end, ok_tuple: true)
+{:ok, :a}
+
+iex(3)> Wormhole.capture(fn-> :a end, ok_tuple: true)
+{:error, :a}
+```
+
 
 ### Usage pattern
 ```elixir
@@ -135,3 +112,52 @@ def some_function_response_handler({:error, error}) do
  ...
 end
 ```
+
+## Description
+Wormhole invokes `callback` in separate process and
+waits for message from callback process containing callback return value.
+if callback is finished successfully the return value is propagated to the caller.
+If callback process is terminated in any way (exception, signal, ...),
+error reason is propagated to the caller.
+
+Wormhole captures anything that is emitted out of the callback
+(return value, error reason or process termination reason)
+and transfers it to the calling process
+in the form `{:ok, state}` or `{:error, reason}`.
+
+By default, any response coming from callback is accepted as successful and
+placed within ok-tuple.
+If option `ok_tuple` is set (meaning the callback is expected to return
+ok-tuple), only ok-tuple response is considered successful.
+Any other response is treated as failure.
+
+In case of failure, failure reason is logged with severity `warn`,
+unless option `skip_log` is set to true.
+
+If `callback` execution is not finished within specified timeout,
+`callback` process is killed and error returned.
+Default timeout value is specified in `@timeout`.
+User can specify `timeout` in `options` keyword list.
+
+Note: `timeout_ms` is deprecated in favor of `timeout`.
+
+By default if callback fails stacktrace will **not** be returned.
+User can set `stacktrace` option to `true` and in that case stacktrace will
+be returned in response.
+Note: `stacktrace` option works only if `crush_report` is not enabled.
+
+By default there is no retry, but user can specify
+`retry_count` and `backoff_ms` in `options`.
+Default back-off time value is specified in `@backoff_ms`.
+
+Note: `retry_count` specifies maximum number of times `callback` can be invoked.
+More accurate name would be `try_count` but I think it would bring
+more confusion than clarity, hence the name remains.
+
+By default exceptions in callback-process are handled so that
+supervisor does not generate CRUSH REPORT (when released - Exrm/Distillery).
+This behavior can be overridden by setting `crush_report` to `true`.
+Note:
+  - Crush report is not generated in Elixir by default.
+  - Letting exceptions propagate might be useful for
+    some other applications too (e.g sentry client).

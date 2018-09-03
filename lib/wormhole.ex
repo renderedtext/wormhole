@@ -37,6 +37,12 @@ defmodule Wormhole do
       iex> capture(fn-> :a end)
       {:ok, :a}
 
+      iex> capture(fn -> {:ok, :a} end, ok_tuple: true)
+      {:ok, :a}
+
+      iex> capture(fn -> :a end, ok_tuple: true)
+      {:error, :a}
+
       iex> capture(fn-> raise "Something happened" end)
       {:error, {:shutdown, %RuntimeError{message: "Something happened"}}}
 
