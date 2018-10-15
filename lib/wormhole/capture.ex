@@ -28,6 +28,7 @@ defmodule Wormhole.Capture do
     timeout      = Keyword.get(options, :timeout)      || timeout_ms
     crush_report = Keyword.get(options, :crush_report) || Defaults.crush_report
     stacktrace?  = Keyword.get(options, :stacktrace)   || Defaults.stacktrace
+    ok_tuple?    = Keyword.get(options, :ok_tuple)     || Defaults.ok_tuple
 
     {callback_pid, callback_ref} =
       callback
@@ -36,7 +37,7 @@ defmodule Wormhole.Capture do
 
     spawn(__MODULE__, :terminator_fn, [self(), callback_pid])
 
-    wait_for_response(callback_pid, callback_ref, timeout)
+    wait_for_response(callback_pid, callback_ref, timeout, ok_tuple?)
   end
 
   def terminator_fn(caller_pid, callback_pid) do
@@ -55,11 +56,11 @@ defmodule Wormhole.Capture do
     end
   end
 
-  defp wait_for_response(callback_pid, callback_ref, timeout) do
+  defp wait_for_response(callback_pid, callback_ref, timeout, ok_tuple?) do
     receive do
       {:wormhole, ^callback_pid, state} ->
         Process.demonitor(callback_ref, [:flush])
-        {:ok, state}
+        state |> ok_tuple(ok_tuple?)
       {:DOWN, ^callback_ref, :process, ^callback_pid, reason} ->
         {:error, reason}
     after
@@ -69,4 +70,8 @@ defmodule Wormhole.Capture do
         {:error, {:timeout, timeout}}
     end
   end
+
+  defp ok_tuple(state,            _ok_tuple? = false), do: {:ok, state}
+  defp ok_tuple(state = {:ok, _}, _ok_tuple? = true),  do: state
+  defp ok_tuple(state,            _ok_tuple? = true),  do: {:error, state}
 end

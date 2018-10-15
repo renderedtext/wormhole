@@ -6,4 +6,5 @@ defmodule Wormhole.Defaults do
   def jitter,      do: :rand.uniform(250)
   def skip_log,    do: false
   def stacktrace,  do: false
+  def ok_tuple,    do: false
 end
