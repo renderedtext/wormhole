@@ -19,7 +19,7 @@ defmodule Wormhole.Mixfile do
 
   defp deps do
     [
-      {:logger_file_backend, "~> 0.0.6", only: :test},
+      {:logger_file_backend, "~> 0.0.11", only: :test},
       {:ex_doc, ">= 0.0.0", only: :dev},
     ]
   end
