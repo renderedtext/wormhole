@@ -15,9 +15,9 @@ defmodule Wormhole.CallbackWrapper do
     try do
       callback.() |> handle_response(caller)
     rescue error ->
-      exit(exit_arg(error, stacktrace?))
+      exit(exit_arg(error, __STACKTRACE__, stacktrace?))
     catch key, error ->
-      exit(exit_arg(key, error, stacktrace?))
+      exit(exit_arg(key, error, __STACKTRACE__, stacktrace?))
     end
   end
 
@@ -33,13 +33,17 @@ defmodule Wormhole.CallbackWrapper do
 
   end
 
-  defp exit_arg(error, _stacktrace?=false), do:
+  defp exit_arg(error, _stacktrace, _stacktrace? = false) do
     {:shutdown, error}
-  defp exit_arg(error, _stacktrace?=true), do:
-    {:shutdown, {error, System.stacktrace()}}
+  end
+  defp exit_arg(error, stacktrace, _stacktrace? = true) do
+    {:shutdown, {error, stacktrace}}
+  end
 
-  defp exit_arg(key, error, _stacktrace?=false), do:
+  defp exit_arg(key, error, _stacktrace, _stacktrace? = false) do
     {:shutdown, {key, error}}
-  defp exit_arg(key, error, _stacktrace?=true), do:
-    {:shutdown, {key, error, System.stacktrace()}}
+  end
+  defp exit_arg(key, error, stacktrace,  _stacktrace? = true) do
+    {:shutdown, {key, error, stacktrace}}
+  end
 end
